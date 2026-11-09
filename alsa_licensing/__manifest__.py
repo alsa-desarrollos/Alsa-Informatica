@@ -1,12 +1,12 @@
 {
     "name": "ALSA - Licencias y Equipos",
-    "version": "19.0.1.10.0",
+    "version": "19.0.1.11.0",
     "category": "Sales/Sales",
     "summary": "Gestión de licencias y equipos integrada con ventas, contactos y helpdesk",
     "author": "Alsa Informática",
     "website": "https://alsainformatica.com.mx",
     "license": "LGPL-3",
-    "depends": ["base", "sale", "contacts", "helpdesk"],
+    "depends": ["base", "mail", "sale", "contacts", "helpdesk"],
     "data": [
         "security/ir.model.access.csv",
         "views/alsa_license_views.xml",

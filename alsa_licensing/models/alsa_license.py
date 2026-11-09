@@ -5,6 +5,7 @@ from odoo.exceptions import AccessError, ValidationError
 class AlsaLicense(models.Model):
     _name = "alsa.license"
     _description = "Licencia de cliente"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "expiration_date desc, name"
 
     name = fields.Char(string="Licencia / Código", required=True, index=True)
