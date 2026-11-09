@@ -33,7 +33,7 @@ class AlsaLicense(models.Model):
         compute="_compute_product_summary",
     )
     product_summary = fields.Char(
-        string="Productos / Servicios",
+        string="Resumen de productos / servicios",
         compute="_compute_product_summary",
     )
     start_date = fields.Date(
@@ -77,7 +77,7 @@ class AlsaLicense(models.Model):
         string="Equipos",
     )
     equipment_count = fields.Integer(
-        string="Equipos",
+        string="Cantidad de equipos",
         compute="_compute_equipment_count",
     )
 

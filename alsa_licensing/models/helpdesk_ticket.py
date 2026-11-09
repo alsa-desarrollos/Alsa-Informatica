@@ -39,7 +39,11 @@ class HelpdeskTicket(models.Model):
             if ticket.partner_id:
                 licenses = License.search(
                     [
-                        ("partner_id", "=", ticket.partner_id.id),
+                        (
+                            "partner_id.commercial_partner_id",
+                            "=",
+                            ticket.partner_id.commercial_partner_id.id,
+                        ),
                         ("expiration_date", ">=", today),
                     ]
                 )
@@ -144,6 +148,11 @@ class AlsaHelpdeskTicketEquipmentLine(models.Model):
         index=True,
         ondelete="cascade",
     )
+    partner_commercial_id = fields.Many2one(
+        related="equipment_id.partner_id.commercial_partner_id",
+        string="Empresa del equipo",
+        readonly=True,
+    )
     equipment_type = fields.Selection(
         related="equipment_id.equipment_type",
         string="Tipo",
@@ -173,6 +182,7 @@ class AlsaHelpdeskTicketEquipmentLine(models.Model):
         related="equipment_id.license_id",
         string="Licencia",
         readonly=False,
+        domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]",
     )
 
     @api.onchange("equipment_id")

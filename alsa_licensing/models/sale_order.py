@@ -90,7 +90,11 @@ class SaleOrder(models.Model):
             if order.partner_id:
                 licenses = License.search(
                     [
-                        ("partner_id", "=", order.partner_id.id),
+                        (
+                            "partner_id.commercial_partner_id",
+                            "=",
+                            order.partner_id.commercial_partner_id.id,
+                        ),
                         ("expiration_date", ">=", today),
                     ]
                 )
@@ -138,16 +142,22 @@ class SaleOrder(models.Model):
 
             available_licenses = License.search(
                 [
-                    ("partner_id", "=", order.partner_id.id),
+                    (
+                        "partner_id.commercial_partner_id",
+                        "=",
+                        order.partner_id.commercial_partner_id.id,
+                    ),
                     ("expiration_date", ">=", today),
                 ]
             )
             selected_licenses = order.alsa_license_ids.filtered(
-                lambda license_record: license_record.partner_id == order.partner_id
+                lambda license_record: license_record.partner_id.commercial_partner_id
+                == order.partner_id.commercial_partner_id
             )
             selected_licenses |= order.alsa_license_selection_line_ids.filtered(
                 lambda line: line.selected
-                and line.license_id.partner_id == order.partner_id
+                and line.license_id.partner_id.commercial_partner_id
+                == order.partner_id.commercial_partner_id
             ).license_id
             order.alsa_license_ids = selected_licenses
             order.alsa_license_selection_line_ids = [
@@ -305,9 +315,13 @@ class SaleOrderLine(models.Model):
         product_template = self.product_id.product_tmpl_id
         license_record = self.alsa_license_id
 
-        if license_record and license_record.partner_id != partner:
+        if (
+            license_record
+            and license_record.partner_id.commercial_partner_id
+            != partner.commercial_partner_id
+        ):
             raise ValidationError(
-                "La licencia seleccionada en la línea de venta no pertenece al cliente del pedido."
+                "La licencia seleccionada no pertenece al cliente ni a su empresa."
             )
 
         start_date = self.alsa_license_start_date or today
@@ -508,6 +522,11 @@ class AlsaSaleOrderLicenseLine(models.Model):
         string="Cliente de la venta",
         readonly=True,
     )
+    order_commercial_partner_id = fields.Many2one(
+        related="order_id.partner_id.commercial_partner_id",
+        string="Empresa de la venta",
+        readonly=True,
+    )
     selected = fields.Boolean(string="Usar", default=True)
     license_id = fields.Many2one(
         comodel_name="alsa.license",
@@ -515,7 +534,7 @@ class AlsaSaleOrderLicenseLine(models.Model):
         required=True,
         index=True,
         ondelete="cascade",
-        domain="[('partner_id', '=', order_partner_id)]",
+        domain="[('partner_id.commercial_partner_id', '=', order_commercial_partner_id)]",
     )
     product_id = fields.Many2one(
         related="license_id.product_id",
@@ -562,10 +581,11 @@ class AlsaSaleOrderLicenseLine(models.Model):
         for line in self:
             if (
                 line.order_id.partner_id
-                and line.license_id.partner_id != line.order_id.partner_id
+                and line.license_id.partner_id.commercial_partner_id
+                != line.order_id.partner_id.commercial_partner_id
             ):
                 raise ValidationError(
-                    "La licencia seleccionada debe pertenecer al cliente de la venta."
+                    "La licencia seleccionada debe pertenecer al cliente o a su empresa."
                 )
             duplicate = self.search(
                 [
@@ -595,9 +615,14 @@ class AlsaSaleOrderLicenseLine(models.Model):
                           AND sale_line.alsa_license_id = license.id
                    )
               FROM sale_order
+              JOIN res_partner AS order_partner
+                ON order_partner.id = sale_order.partner_id
               JOIN alsa_license AS license
-                ON license.partner_id = sale_order.partner_id
-               AND license.expiration_date >= CURRENT_DATE
+                ON license.expiration_date >= CURRENT_DATE
+              JOIN res_partner AS license_partner
+                ON license_partner.id = license.partner_id
+               AND license_partner.commercial_partner_id =
+                   order_partner.commercial_partner_id
              WHERE NOT EXISTS (
                        SELECT 1
                          FROM alsa_sale_order_license_line AS selection_line

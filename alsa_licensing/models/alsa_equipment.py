@@ -18,6 +18,11 @@ class AlsaEquipment(models.Model):
         index=True,
         ondelete="restrict",
     )
+    partner_commercial_id = fields.Many2one(
+        related="partner_id.commercial_partner_id",
+        string="Empresa del cliente",
+        readonly=True,
+    )
     equipment_type = fields.Selection(
         selection=[("terminal", "Terminal"), ("server", "Servidor")],
         string="Tipo de equipo",
@@ -50,18 +55,18 @@ class AlsaEquipment(models.Model):
         string="Productos / Servicios relacionados",
     )
     product_summary = fields.Char(
-        string="Productos / Servicios relacionados",
+        string="Resumen de productos / servicios relacionados",
         compute="_compute_product_summary",
     )
     license_id = fields.Many2one(
         comodel_name="alsa.license",
         string="Licencia asociada",
         ondelete="set null",
-        domain="[('partner_id', '=', partner_id)]",
+        domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]",
     )
     license_product_summary = fields.Char(
         related="license_id.product_summary",
-        string="Productos / Servicios de la licencia",
+        string="Resumen de productos / servicios de la licencia",
         readonly=True,
     )
     license_product_line_ids = fields.Many2many(
@@ -145,11 +150,6 @@ class AlsaEquipment(models.Model):
 
     def write(self, values):
         values = dict(values)
-        license_id = values.get("license_id")
-        if license_id and "partner_id" not in values:
-            license_record = self.env["alsa.license"].browse(license_id).exists()
-            if license_record:
-                values["partner_id"] = license_record.partner_id.id
         product_id = values.get("product_id")
         if product_id:
             product_commands = list(values.get("product_ids") or [])
@@ -159,11 +159,21 @@ class AlsaEquipment(models.Model):
 
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
-        if self.license_id and self.license_id.partner_id != self.partner_id:
+        if (
+            self.license_id
+            and self.license_id.partner_id.commercial_partner_id
+            != self.partner_id.commercial_partner_id
+        ):
             self.license_id = False
         return {
             "domain": {
-                "license_id": [("partner_id", "=", self.partner_id.id)]
+                "license_id": [
+                    (
+                        "partner_id.commercial_partner_id",
+                        "=",
+                        self.partner_id.commercial_partner_id.id,
+                    )
+                ]
                 if self.partner_id
                 else [("id", "=", False)]
             }
@@ -172,7 +182,8 @@ class AlsaEquipment(models.Model):
     @api.onchange("license_id")
     def _onchange_license_id(self):
         if self.license_id:
-            self.partner_id = self.license_id.partner_id
+            if not self.partner_id:
+                self.partner_id = self.license_id.partner_id
             if not self.product_id:
                 self.product_id = self.license_id.product_id
             if self.license_id.product_id:
@@ -183,10 +194,11 @@ class AlsaEquipment(models.Model):
         for equipment in self:
             if (
                 equipment.license_id
-                and equipment.partner_id != equipment.license_id.partner_id
+                and equipment.partner_id.commercial_partner_id
+                != equipment.license_id.partner_id.commercial_partner_id
             ):
                 raise ValidationError(
-                    "La licencia asociada debe pertenecer al mismo cliente que el equipo."
+                    "La licencia asociada debe pertenecer al cliente o a su misma empresa."
                 )
 
     def init(self):
