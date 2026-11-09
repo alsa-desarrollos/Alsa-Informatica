@@ -4,11 +4,11 @@ from odoo.exceptions import UserError, RedirectWarning
 
 _logger = logging.getLogger(__name__)
 
-DEFAULT_TERMS_HTML = """
-<p>1.- Los precios incluyen IVA y son válidos por 10 días y/o agotar existencias.</p>
-<p>2.- Tiempo de entrega: 2 - 3 días contra confirmación del pedido.</p>
-<p>3.- Forma de pago: Contado anticipado para ordenar.</p>
-"""
+DEFAULT_TERMS_HTML = (
+    '<p>1.- Los precios incluyen IVA y son válidos por 10 días y/o agotar existencias.</p>'
+    '<p>2.- Tiempo de entrega: 2 - 3 días contra confirmación del pedido.</p>'
+    '<p>3.- Forma de pago: Contado anticipado para ordenar.</p>'
+)
 
 class CotizacionExpressStage(models.Model):
     _name = 'cotizacion.express.stage'
@@ -102,6 +102,13 @@ class CotizacionExpress(models.Model):
     tag_ids = fields.Many2many('cotizacion.express.tag', string='Etiquetas')
     amount_total = fields.Monetary(string='Total', compute='_compute_amount_total', store=True)
     amount_confirmed = fields.Monetary(string='Monto Confirmado', compute='_compute_amount_confirmed', store=True, currency_field='currency_id')
+
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        if 'notes' in fields_list and not values.get('notes'):
+            values['notes'] = DEFAULT_TERMS_HTML
+        return values
 
     @api.depends('amount_total', 'state')
     def _compute_amount_confirmed(self):
