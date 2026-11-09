@@ -4,7 +4,7 @@
         <field name="name">cotizacion.express.tree</field>
         <field name="model">cotizacion.express</field>
         <field name="arch" type="xml">
-            <list>
+            <list js_class="cotizacion_global_totals_list">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="date"/>

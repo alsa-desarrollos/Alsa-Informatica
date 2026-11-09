@@ -1,6 +1,6 @@
 {
     'name': 'Cotizaciones Express',
-    'version': '19.0.1.0.58',
+    'version': '19.0.1.0.59',
     'category': 'Sales/Sales',
     'summary': 'Generación ágil de cotizaciones comerciales con múltiples opciones, previsualización PDF interactiva en vivo e integración de firmas.',
     'description': """
@@ -36,6 +36,7 @@ Características Principales:
         'web.assets_backend': [
             'cotizaciones_express/static/src/css/cotizacion_form.css',
             'cotizaciones_express/static/src/js/cotizacion_fix.js',
+            'cotizaciones_express/static/src/js/cotizacion_list_totals.js',
         ],
     },
     'images': ['static/description/icon.png'],
