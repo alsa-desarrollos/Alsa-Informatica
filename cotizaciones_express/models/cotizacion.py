@@ -241,8 +241,28 @@ class CotizacionExpress(models.Model):
                 vals['stage_id'] = stage.id
 
         is_confirming = vals.get('state') == 'confirmed'
-        if is_confirming and not self.env.context.get('from_wizard'):
+        needs_confirmation = is_confirming and any(
+            record.state != 'confirmed' for record in self
+        )
+        if needs_confirmation and not self.env.context.get('from_wizard'):
             self.ensure_one()
+
+            pending_vals = {
+                key: value
+                for key, value in vals.items()
+                if key not in ('state', 'stage_id')
+            }
+            if pending_vals:
+                super(CotizacionExpress, self).write(pending_vals)
+
+            if not self.option_ids:
+                raise UserError(_('Debe agregar al menos una opción antes de confirmar la cotización.'))
+
+            if len(self.option_ids) == 1:
+                self.option_ids.selected = True
+                self.with_context(from_wizard=True).action_confirm_sale_order()
+                return True
+
             action = self.env.ref('cotizaciones_express.action_cotizacion_confirm_wizard')
             raise RedirectWarning(
                 _("Para confirmar esta cotización, por favor seleccione las opciones de venta confirmadas."),
@@ -251,8 +271,7 @@ class CotizacionExpress(models.Model):
                 {'default_cotizacion_id': self.id, 'active_id': self.id}
             )
                 
-        res = super(CotizacionExpress, self).write(vals)
-        return res
+        return super(CotizacionExpress, self).write(vals)
 
     def copy(self, default=None):
         if not self:
