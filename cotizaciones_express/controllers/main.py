@@ -13,6 +13,14 @@ class CotizacionExpressReportController(ReportController):
         '/report/<path:converter>/<reportname>/<docids>',
     ], type='http', auth="user", website=True)
     def report_routes(self, reportname, docids=None, converter=None, **data):
+        if (
+            reportname.startswith('cotizaciones_express.')
+            and not request.env.user.has_group(
+                'cotizaciones_express.group_cotizaciones_express_user'
+            )
+        ):
+            return request.not_found()
+
         response = super(CotizacionExpressReportController, self).report_routes(
             reportname, docids=docids, converter=converter, **data
         )
@@ -42,8 +50,16 @@ class CotizacionExpressReportController(ReportController):
 
 class CotizacionExpressController(http.Controller):
 
+    @staticmethod
+    def _has_module_access():
+        return request.env.user.has_group(
+            'cotizaciones_express.group_cotizaciones_express_user'
+        )
+
     @http.route('/cotizacion/pdf/<int:cotizacion_id>', type='http', auth='user', website=False)
     def cotizacion_pdf(self, cotizacion_id, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
         cotizacion = request.env['cotizacion.express'].browse(cotizacion_id)
         if not cotizacion.exists():
             return request.not_found(description='Cotización no encontrada')
@@ -72,6 +88,8 @@ class CotizacionExpressController(http.Controller):
 
     @http.route('/cotizacion/preview_html/<int:cotizacion_id>', type='http', auth='user', website=False)
     def preview_cotizacion_html(self, cotizacion_id, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
         if cotizacion_id > 0:
             cotizacion = request.env['cotizacion.express'].browse(cotizacion_id)
             if not cotizacion.exists():
@@ -197,6 +215,8 @@ class CotizacionExpressController(http.Controller):
 
     @http.route('/cotizacion/image/<string:model>/<int:record_id>/<string:field>', type='http', auth='user', website=False)
     def get_image(self, model, record_id, field, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
         Model = request.env.get(model)
         if not Model:
             return request.not_found(description='Modelo no encontrado')
