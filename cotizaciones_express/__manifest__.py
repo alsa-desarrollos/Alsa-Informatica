@@ -1,6 +1,6 @@
 {
     'name': 'Cotizaciones Express',
-    'version': '19.0.1.0.65',
+    'version': '19.0.1.0.66',
     'category': 'Sales/Sales',
     'summary': 'Generación ágil de cotizaciones comerciales con múltiples opciones, previsualización PDF interactiva en vivo e integración de firmas.',
     'description': """
@@ -26,6 +26,7 @@ Características Principales:
         'security/ir.model.access.csv',
         'data/ir_sequence.xml',
         'data/stages.xml',
+        'data/export_templates.xml',
         'views/seller_signature_views.xml',
         'views/cotizacion_views.xml',
         'views/access_settings_views.xml',
