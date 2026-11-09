@@ -31,7 +31,7 @@
                                     <field name="equipment_type"/>
                                     <field name="specifications" string="Características" width="360px" readonly="False"/>
                                     <field name="product_ids" string="Productos / Servicios" widget="many2many_tags" optional="show"/>
-                                    <field name="license_id" domain="[('partner_id', '=', parent.id)]" optional="show"/>
+                                    <field name="license_id" domain="[('partner_id', '=', parent.id)]" context="{'default_partner_id': parent.id}" options="{'no_quick_create': True}" optional="show"/>
                                 </list>
                             </field>
                         </page>

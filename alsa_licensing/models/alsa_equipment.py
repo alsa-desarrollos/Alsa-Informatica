@@ -57,6 +57,7 @@ class AlsaEquipment(models.Model):
         comodel_name="alsa.license",
         string="Licencia asociada",
         ondelete="set null",
+        domain="[('partner_id', '=', partner_id)]",
     )
     license_product_summary = fields.Char(
         related="license_id.product_summary",
@@ -164,7 +165,7 @@ class AlsaEquipment(models.Model):
             "domain": {
                 "license_id": [("partner_id", "=", self.partner_id.id)]
                 if self.partner_id
-                else []
+                else [("id", "=", False)]
             }
         }
 

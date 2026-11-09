@@ -61,7 +61,7 @@
                         </group>
                         <group>
                             <field name="product_ids" widget="many2many_tags"/>
-                            <field name="license_id" domain="[('partner_id', '=', partner_id)]"/>
+                            <field name="license_id" domain="[('partner_id', '=', partner_id)]" context="{'default_partner_id': partner_id}" options="{'no_quick_create': True}"/>
                             <field name="license_expiration_date" invisible="not license_id"/>
                             <field name="license_state" widget="badge" invisible="not license_id"/>
                         </group>
@@ -93,7 +93,7 @@
                             <field name="equipment_type"/>
                         </group>
                         <group>
-                            <field name="license_id" domain="[('partner_id', '=', partner_id)]"/>
+                            <field name="license_id" domain="[('partner_id', '=', partner_id)]" context="{'default_partner_id': partner_id}" options="{'no_quick_create': True}"/>
                             <field name="license_expiration_date" invisible="not license_id"/>
                             <field name="license_state" widget="badge" invisible="not license_id"/>
                         </group>
