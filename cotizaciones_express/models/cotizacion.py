@@ -343,6 +343,17 @@ class CotizacionExpress(models.Model):
 
     def action_confirm(self):
         self.ensure_one()
+        if not self.option_ids:
+            raise UserError(_('Debe agregar al menos una opción antes de confirmar la cotización.'))
+
+        if len(self.option_ids) == 1:
+            self.option_ids.selected = True
+            self.with_context(from_wizard=True).action_confirm_sale_order()
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'reload',
+            }
+
         wizard_lines = []
         for option in self.option_ids:
             wizard_lines.append((0, 0, {
