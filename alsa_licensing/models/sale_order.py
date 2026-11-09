@@ -503,6 +503,11 @@ class AlsaSaleOrderLicenseLine(models.Model):
         index=True,
         ondelete="cascade",
     )
+    order_partner_id = fields.Many2one(
+        related="order_id.partner_id",
+        string="Cliente de la venta",
+        readonly=True,
+    )
     selected = fields.Boolean(string="Usar", default=True)
     license_id = fields.Many2one(
         comodel_name="alsa.license",
@@ -510,6 +515,7 @@ class AlsaSaleOrderLicenseLine(models.Model):
         required=True,
         index=True,
         ondelete="cascade",
+        domain="[('partner_id', '=', order_partner_id)]",
     )
     product_id = fields.Many2one(
         related="license_id.product_id",
