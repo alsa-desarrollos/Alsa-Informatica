@@ -1,5 +1,5 @@
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError, ValidationError
 
 
 class AlsaLicense(models.Model):
@@ -81,6 +81,22 @@ class AlsaLicense(models.Model):
         compute="_compute_equipment_count",
     )
 
+    @api.depends("name", "partner_id.display_name")
+    @api.depends_context("alsa_license_calendar")
+    def _compute_display_name(self):
+        if not self.env.context.get("alsa_license_calendar"):
+            return super()._compute_display_name()
+
+        for license_record in self:
+            license_record.display_name = " — ".join(
+                value
+                for value in (
+                    license_record.partner_id.display_name,
+                    license_record.name,
+                )
+                if value
+            )
+
     def action_open_sales_details(self):
         self.ensure_one()
         form_view = self.env.ref(
@@ -94,6 +110,29 @@ class AlsaLicense(models.Model):
             "view_mode": "form",
             "views": [(form_view.id, "form")],
             "target": "new",
+        }
+
+    def action_create_renewal_quotation(self):
+        self.ensure_one()
+        if not self.env["sale.order"].has_access("create"):
+            raise AccessError(
+                _("No tiene permisos para crear cotizaciones de venta.")
+            )
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Nueva cotización de renovación"),
+            "res_model": "sale.order",
+            "view_mode": "form",
+            "target": "current",
+            "context": {
+                "default_partner_id": self.partner_id.id,
+                "default_origin": _(
+                    "Renovación de licencia %(license)s",
+                    license=self.display_name,
+                ),
+                "default_alsa_license_ids": [(6, 0, self.ids)],
+            },
         }
 
     @api.depends("product_id", "product_line_ids.product_id")
