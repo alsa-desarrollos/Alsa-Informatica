@@ -1,6 +1,6 @@
 {
     "name": "ALSA - Licencias y Equipos",
-    "version": "19.0.1.8.3",
+    "version": "19.0.1.8.4",
     "category": "Sales/Sales",
     "summary": "Gestión de licencias y equipos integrada con ventas, contactos y helpdesk",
     "author": "Alsa Informática",
