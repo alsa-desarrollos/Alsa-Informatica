@@ -443,7 +443,7 @@ class CotizacionExpress(models.Model):
             self.crm_lead_id.sudo().write({'sale_order_id': order.id})
         self.state = 'confirmed'
         
-        has_access = self.env['sale.order'].check_access_rights('read', raise_exception=False)
+        has_access = self.env['sale.order'].has_access('read')
         if has_access:
             return {
                 'type': 'ir.actions.act_window',
