@@ -178,6 +178,11 @@ class AlsaHelpdeskTicketEquipmentLine(models.Model):
         string="Productos / Servicios",
         readonly=True,
     )
+    product_count = fields.Integer(
+        related="equipment_id.product_count",
+        string="Cantidad de productos relacionados",
+        readonly=True,
+    )
     license_id = fields.Many2one(
         related="equipment_id.license_id",
         string="Licencia",

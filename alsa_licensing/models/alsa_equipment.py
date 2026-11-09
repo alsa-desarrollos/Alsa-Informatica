@@ -58,6 +58,10 @@ class AlsaEquipment(models.Model):
         string="Resumen de productos / servicios relacionados",
         compute="_compute_product_summary",
     )
+    product_count = fields.Integer(
+        string="Cantidad de productos relacionados",
+        compute="_compute_product_summary",
+    )
     license_id = fields.Many2one(
         comodel_name="alsa.license",
         string="Licencia asociada",
@@ -103,6 +107,7 @@ class AlsaEquipment(models.Model):
             if equipment.product_id:
                 products |= equipment.product_id
             equipment.product_summary = ", ".join(products.mapped("display_name"))
+            equipment.product_count = len(products)
 
     @api.depends("license_id", "license_id.product_line_ids")
     def _compute_license_product_line_ids(self):
