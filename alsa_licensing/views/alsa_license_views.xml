@@ -111,9 +111,7 @@
                             <field name="product_line_ids" nolabel="1" context="{'default_license_id': id}">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="product_default_code" string="Código/Número de referencia"/>
                                     <field name="product_id"/>
-                                    <field name="quantity"/>
                                     <field name="allowed_access_count" string="Cantidad de usuarios"/>
                                 </list>
                             </field>
