@@ -44,8 +44,7 @@
                         <list editable="bottom" delete="0">
                             <field name="selected" widget="boolean_toggle" width="65px"/>
                             <field name="license_id" width="160px" domain="[('partner_id', '=', parent.partner_id)]" context="{'default_partner_id': parent.partner_id}" options="{'no_quick_create': True}"/>
-                            <field name="product_id" readonly="False"/>
-                            <field name="product_summary" optional="hide"/>
+                            <field name="product_summary" optional="show"/>
                             <field name="start_date" optional="hide" readonly="False"/>
                             <field name="expiration_date" width="115px" readonly="False"/>
                             <field name="allowed_access_count" width="80px" readonly="False"/>
