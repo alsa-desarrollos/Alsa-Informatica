@@ -443,9 +443,9 @@ class AlsaSaleOrderEquipmentLine(models.Model):
         string="Productos / Servicios relacionados",
         readonly=True,
     )
-    product_count = fields.Integer(
-        related="equipment_id.product_count",
-        string="Cantidad de productos relacionados",
+    product_preview = fields.Char(
+        related="equipment_id.product_preview",
+        string="Vista previa de productos relacionados",
         readonly=True,
     )
     license_id = fields.Many2one(

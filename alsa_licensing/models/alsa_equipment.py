@@ -58,8 +58,8 @@ class AlsaEquipment(models.Model):
         string="Resumen de productos / servicios relacionados",
         compute="_compute_product_summary",
     )
-    product_count = fields.Integer(
-        string="Cantidad de productos relacionados",
+    product_preview = fields.Char(
+        string="Vista previa de productos relacionados",
         compute="_compute_product_summary",
     )
     license_id = fields.Many2one(
@@ -103,11 +103,18 @@ class AlsaEquipment(models.Model):
     @api.depends("product_id", "product_ids")
     def _compute_product_summary(self):
         for equipment in self:
-            products = equipment.product_ids
-            if equipment.product_id:
-                products |= equipment.product_id
-            equipment.product_summary = ", ".join(products.mapped("display_name"))
-            equipment.product_count = len(products)
+            products = equipment.product_id | equipment.product_ids
+            product_names = products.mapped("display_name")
+            equipment.product_summary = ", ".join(product_names)
+            if not product_names:
+                equipment.product_preview = "Sin productos relacionados"
+            elif len(product_names) == 1:
+                equipment.product_preview = product_names[0]
+            else:
+                equipment.product_preview = "%s · +%s más" % (
+                    product_names[0],
+                    len(product_names) - 1,
+                )
 
     @api.depends("license_id", "license_id.product_line_ids")
     def _compute_license_product_line_ids(self):
