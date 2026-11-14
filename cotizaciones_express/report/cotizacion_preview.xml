@@ -98,8 +98,8 @@
                             </div>
                         </div>
 
-                        <t t-set="selected_opts" t-value="doc.option_ids.filtered(lambda o: o.selected)"/>
-                        <t t-set="opts_to_render" t-value="selected_opts if doc.state == 'confirmed' else doc.option_ids"/>
+                        <t t-set="selected_opts" t-value="doc.option_ids.filtered(lambda o: o.selected).sorted(key=lambda o: (o.sequence, o.id))"/>
+                        <t t-set="opts_to_render" t-value="selected_opts if doc.state == 'confirmed' else doc.option_ids.sorted(key=lambda o: (o.sequence, o.id))"/>
                         
                         <t t-foreach="opts_to_render" t-as="option">
                             <!-- Nombre de la Opción como título de sección -->
@@ -123,7 +123,7 @@
                                 </thead>
                                 <tbody>
                                     <!-- Filas de Productos -->
-                                    <t t-foreach="option.line_ids" t-as="line">
+                                    <t t-foreach="option.line_ids.sorted(key=lambda line: (line.sequence, line.id))" t-as="line">
                                         <tr style="border: none; page-break-inside: avoid;">
                                             <td style="width: 8%; vertical-align: top; padding: 4px 0; font-weight: bold; text-align: center; border: none; font-size: 11pt !important;">
                                                 <span t-field="line.quantity" t-options='{"widget": "integer"}' style="font-size: 11pt !important;" />
@@ -223,11 +223,6 @@
                                 <div style="margin-bottom: 10px; margin-top: 4px; page-break-inside: avoid; break-inside: avoid;">
                                     <t t-if="doc.notes">
                                         <t t-out="doc.notes"/>
-                                    </t>
-                                    <t t-else="">
-                                        <p style="margin: 0; font-size: 11pt !important;">1.- Los precios incluyen IVA y son válidos por 10 días y/o agotar existencias.</p>
-                                        <p style="margin: 0; font-size: 11pt !important;">2.- Tiempo de entrega: 2 - 3 días contra confirmación del pedido.</p>
-                                        <p style="margin: 0; font-size: 11pt !important;">3.- Forma de pago: Contado anticipado para ordenar.</p>
                                     </t>
                                 </div>
 

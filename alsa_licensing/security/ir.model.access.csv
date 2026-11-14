@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_alsa_license_user,alsa.license user,model_alsa_license,base.group_user,1,1,1,1
+access_alsa_license_admin,alsa.license admin,model_alsa_license,base.group_system,1,1,1,1
+access_alsa_license_line_user,alsa.license.line user,model_alsa_license_line,base.group_user,1,1,1,1
+access_alsa_license_line_admin,alsa.license.line admin,model_alsa_license_line,base.group_system,1,1,1,1
+access_alsa_equipment_user,alsa.equipment user,model_alsa_equipment,base.group_user,1,1,1,1
+access_alsa_equipment_admin,alsa.equipment admin,model_alsa_equipment,base.group_system,1,1,1,1
+access_alsa_sale_order_equipment_line_user,alsa.sale.order.equipment.line user,model_alsa_sale_order_equipment_line,base.group_user,1,1,1,1
+access_alsa_sale_order_equipment_line_admin,alsa.sale.order.equipment.line admin,model_alsa_sale_order_equipment_line,base.group_system,1,1,1,1
+access_alsa_sale_order_license_line_user,alsa.sale.order.license.line user,model_alsa_sale_order_license_line,base.group_user,1,1,1,1
+access_alsa_sale_order_license_line_admin,alsa.sale.order.license.line admin,model_alsa_sale_order_license_line,base.group_system,1,1,1,1
+access_alsa_helpdesk_ticket_equipment_line_user,alsa.helpdesk.ticket.equipment.line user,model_alsa_helpdesk_ticket_equipment_line,base.group_user,1,1,1,1
+access_alsa_helpdesk_ticket_equipment_line_admin,alsa.helpdesk.ticket.equipment.line admin,model_alsa_helpdesk_ticket_equipment_line,base.group_system,1,1,1,1

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cotizacion_express_access_settings_form" model="ir.ui.view">
+        <field name="name">cotizacion.express.access.settings.form</field>
+        <field name="model">cotizacion.express.access.settings</field>
+        <field name="arch" type="xml">
+            <form string="Permisos de acceso">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Acceso a Cotizaciones Express</h1>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        Seleccione los usuarios internos que podrán ver y utilizar el módulo.
+                        Los administradores siempre conservarán el acceso.
+                    </div>
+                    <group>
+                        <field name="authorized_user_ids"
+                               widget="many2many_tags"
+                               options="{'no_create': True, 'no_quick_create': True}"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_save" string="Guardar permisos" type="object" class="oe_highlight"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cotizacion_express_access_settings" model="ir.actions.act_window">
+        <field name="name">Permisos de acceso</field>
+        <field name="res_model">cotizacion.express.access.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="group_ids" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+
+    <menuitem id="menu_cotizacion_express_configuration"
+              name="Configuración"
+              parent="menu_cotizaciones_root"
+              sequence="90"
+              groups="base.group_system"/>
+    <menuitem id="menu_cotizacion_express_access_settings"
+              name="Permisos de acceso"
+              parent="menu_cotizacion_express_configuration"
+              action="action_cotizacion_express_access_settings"
+              sequence="10"
+              groups="base.group_system"/>
+</odoo>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="helpdesk_ticket_form_alsa_licensing" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form.alsa.licensing</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/notebook" position="inside">
+                <page string="Equipos a atender" name="alsa_licensing" invisible="not partner_id">
+                    <separator string="Seleccione los equipos que se atenderán"/>
+                    <field name="alsa_equipment_selection_line_ids" nolabel="1">
+                        <list editable="bottom" delete="0">
+                            <field name="selected" string="Atender" widget="boolean_toggle" width="70px"/>
+                            <field name="equipment_id" string="Equipo" width="180px" domain="[('partner_id', '=', parent.partner_id)]" context="{'default_partner_id': parent.partner_id}"/>
+                            <field name="partner_commercial_id" column_invisible="True"/>
+                            <field name="equipment_type" string="Tipo" width="100px" widget="badge" readonly="False"/>
+                            <field name="product_preview" string="Productos relacionados"/>
+                            <field name="license_id" string="Licencia" optional="hide" readonly="False" domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]" context="{'default_partner_id': parent.partner_id}" options="{'no_quick_create': True}"/>
+                            <button name="action_open_equipment_details" type="object" string="Información" icon="fa-info-circle"/>
+                        </list>
+                    </field>
+                    <field name="alsa_equipment_ids" invisible="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

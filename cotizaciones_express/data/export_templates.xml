@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!--
+        Import-compatible export template.  The External ID columns at each
+        level preserve the quotation -> option -> product hierarchy when the
+        generated XLSX file is imported again.
+    -->
+    <record id="export_cotizacion_with_options_products" model="ir.exports">
+        <field name="name">Cotizaciones con opciones y productos</field>
+        <field name="resource">cotizacion.express</field>
+    </record>
+
+    <record id="export_cotizacion_external_id" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">id</field>
+    </record>
+    <record id="export_cotizacion_name" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">name</field>
+    </record>
+    <record id="export_cotizacion_partner" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">partner_id/id</field>
+    </record>
+    <record id="export_cotizacion_date" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">date</field>
+    </record>
+    <record id="export_cotizacion_city" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">city</field>
+    </record>
+    <record id="export_cotizacion_state_location" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">state_location</field>
+    </record>
+    <record id="export_cotizacion_user" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">user_id/id</field>
+    </record>
+    <record id="export_cotizacion_reply_to" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">reply_to</field>
+    </record>
+    <record id="export_cotizacion_notes" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">notes</field>
+    </record>
+
+    <record id="export_option_external_id" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/id</field>
+    </record>
+    <record id="export_option_name" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/name</field>
+    </record>
+    <record id="export_option_description" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/description</field>
+    </record>
+    <record id="export_option_selected" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/selected</field>
+    </record>
+    <record id="export_option_sequence" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/sequence</field>
+    </record>
+    <record id="export_option_discount" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/discount_general</field>
+    </record>
+
+    <record id="export_option_line_external_id" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/id</field>
+    </record>
+    <record id="export_option_line_name" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/name</field>
+    </record>
+    <record id="export_option_line_description" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/description</field>
+    </record>
+    <record id="export_option_line_quantity" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/quantity</field>
+    </record>
+    <record id="export_option_line_price_unit" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/price_unit</field>
+    </record>
+    <record id="export_option_line_iva" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/iva_percent</field>
+    </record>
+    <record id="export_option_line_discount" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/discount</field>
+    </record>
+    <record id="export_option_line_sequence" model="ir.exports.line">
+        <field name="export_id" ref="export_cotizacion_with_options_products"/>
+        <field name="name">option_ids/line_ids/sequence</field>
+    </record>
+</odoo>

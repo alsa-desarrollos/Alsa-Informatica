@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_alsa_equipment_list" model="ir.ui.view">
+        <field name="name">alsa.equipment.list</field>
+        <field name="model">alsa.equipment</field>
+        <field name="arch" type="xml">
+            <list string="Equipos">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="equipment_type" widget="badge"/>
+                <field name="product_summary"/>
+                <field name="license_id" optional="show"/>
+                <field name="specifications_summary" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_alsa_equipment_kanban" model="ir.ui.view">
+        <field name="name">alsa.equipment.kanban</field>
+        <field name="model">alsa.equipment</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_small_column" sample="1">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="equipment_type"/>
+                <field name="product_summary"/>
+                <field name="license_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <strong class="fs-5"><field name="name"/></strong>
+                            <field name="equipment_type" widget="badge"/>
+                        </div>
+                        <div class="text-muted mt-2"><field name="partner_id"/></div>
+                        <div class="mt-2" t-if="record.product_summary.raw_value">
+                            <field name="product_summary"/>
+                        </div>
+                        <div class="mt-2" t-if="record.license_id.raw_value">
+                            Licencia: <field name="license_id"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_alsa_equipment_form" model="ir.ui.view">
+        <field name="name">alsa.equipment.form</field>
+        <field name="model">alsa.equipment</field>
+        <field name="arch" type="xml">
+            <form string="Equipo">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Nombre o identificador del equipo"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="partner_commercial_id" invisible="1"/>
+                            <field name="equipment_type"/>
+                        </group>
+                        <group>
+                            <field name="product_ids" widget="many2many_tags"/>
+                            <field name="license_id" domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]" context="{'default_partner_id': partner_id}" options="{'no_quick_create': True}"/>
+                            <field name="license_expiration_date" invisible="not license_id"/>
+                            <field name="license_state" widget="badge" invisible="not license_id"/>
+                        </group>
+                    </group>
+                    <group string="Productos / Servicios de la licencia" invisible="not license_id">
+                        <field name="license_product_summary" nolabel="1"/>
+                    </group>
+                    <group string="Características / Especificaciones técnicas">
+                        <field name="specifications" widget="html" nolabel="1" placeholder="Procesador, memoria, sistema operativo, dirección IP, número de serie, notas técnicas..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_alsa_equipment_support_modal_form" model="ir.ui.view">
+        <field name="name">alsa.equipment.support.modal.form</field>
+        <field name="model">alsa.equipment</field>
+        <field name="arch" type="xml">
+            <form string="Información del equipo" create="0" delete="0">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="partner_commercial_id" invisible="1"/>
+                            <field name="equipment_type"/>
+                        </group>
+                        <group>
+                            <field name="license_id" domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]" context="{'default_partner_id': partner_id}" options="{'no_quick_create': True}"/>
+                            <field name="license_expiration_date" invisible="not license_id"/>
+                            <field name="license_state" widget="badge" invisible="not license_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Características / Especificaciones" name="support_specifications">
+                            <field name="specifications" widget="html" nolabel="1" style="min-height: 320px;" placeholder="Procesador, memoria, sistema operativo, dirección IP, número de serie, notas de soporte..."/>
+                        </page>
+                        <page string="Productos / Servicios relacionados" name="support_related_products">
+                            <div class="alert alert-warning" role="alert" invisible="license_id">
+                                Seleccione una licencia asociada para registrar los productos, servicios y usuarios relacionados.
+                            </div>
+                            <field name="license_product_line_ids" nolabel="1" invisible="not license_id" context="{'default_license_id': license_id}">
+                                <list editable="bottom" create="1" edit="1" delete="1" open_form_view="1" string="Productos / Servicios relacionados">
+                                    <field name="product_default_code" string="Código/Número de referencia"/>
+                                    <field name="product_id" string="Producto / Servicio"/>
+                                    <field name="allowed_access_count" string="Cantidad de usuarios" width="140px"/>
+                                </list>
+                                <form string="Producto / Servicio relacionado">
+                                    <group>
+                                        <field name="product_default_code" string="Código/Número de referencia"/>
+                                        <field name="product_id"/>
+                                        <field name="quantity"/>
+                                        <field name="allowed_access_count" string="Cantidad de usuarios"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Observaciones sobre el equipo" name="support_observations">
+                            <field name="observations" widget="html" nolabel="1" style="min-height: 320px;" placeholder="Agregue aquí observaciones relevantes sobre el equipo..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_alsa_equipment_search" model="ir.ui.view">
+        <field name="name">alsa.equipment.search</field>
+        <field name="model">alsa.equipment</field>
+        <field name="arch" type="xml">
+            <search string="Buscar equipos">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_ids" string="Productos / Servicios"/>
+                <field name="license_id"/>
+                <filter name="terminal" string="Terminales" domain="[('equipment_type', '=', 'terminal')]"/>
+                <filter name="server" string="Servidores" domain="[('equipment_type', '=', 'server')]"/>
+                <separator/>
+                <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                <filter name="group_type" string="Tipo" context="{'group_by': 'equipment_type'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_alsa_equipment" model="ir.actions.act_window">
+        <field name="name">Equipos</field>
+        <field name="res_model">alsa.equipment</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_alsa_equipment_search"/>
+    </record>
+
+    <menuitem id="menu_alsa_equipment" name="Equipos" parent="menu_alsa_licensing_root" action="action_alsa_equipment" sequence="20"/>
+</odoo>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_alsa_license_list" model="ir.ui.view">
+        <field name="name">alsa.license.list</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <list string="Licencias" decoration-danger="state == 'expired'" decoration-success="state == 'active'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_summary"/>
+                <field name="product_count" optional="hide"/>
+                <field name="equipment_count" optional="show"/>
+                <field name="start_date"/>
+                <field name="expiration_date"/>
+                <field name="allowed_access_count"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_alsa_license_form" model="ir.ui.view">
+        <field name="name">alsa.license.form</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <form string="Licencia">
+                <header>
+                    <button name="action_create_renewal_quotation"
+                            string="Crear cotización"
+                            type="object"
+                            class="oe_highlight"
+                            icon="fa-file-text-o"
+                            groups="sales_team.group_sale_salesman"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" text="Expirada" bg_color="text-bg-danger" invisible="state != 'expired'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Código o nombre de licencia"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="allowed_access_count"/>
+                        </group>
+                        <group>
+                            <field name="start_date"/>
+                            <field name="expiration_date"/>
+                            <field name="state" widget="badge" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Productos / Servicios" name="products">
+                            <field name="product_line_ids" context="{'default_license_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="allowed_access_count"/>
+                                    <field name="sale_order_line_id" optional="hide"/>
+                                </list>
+                                <form string="Producto / Servicio de licencia">
+                                    <group>
+                                        <field name="product_id"/>
+                                        <field name="quantity"/>
+                                        <field name="allowed_access_count"/>
+                                        <field name="sale_order_line_id"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Equipos" name="equipment">
+                            <field name="equipment_ids" context="{'default_partner_id': partner_id}">
+                                <list editable="bottom" open_form_view="1">
+                                    <field name="partner_id" column_invisible="True"/>
+                                    <field name="name"/>
+                                    <field name="equipment_type"/>
+                                    <field name="product_ids" string="Productos / Servicios" widget="many2many_tags"/>
+                                    <field name="specifications" string="Características" width="360px" optional="show" readonly="False"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Origen de venta" name="sale_origin">
+                            <group>
+                                <field name="product_id" string="Producto principal (histórico)"/>
+                                <field name="sale_order_id"/>
+                                <field name="sale_order_line_id"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_alsa_license_sales_modal_form" model="ir.ui.view">
+        <field name="name">alsa.license.sales.modal.form</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <form string="Información de la licencia" create="0" delete="0">
+                <sheet>
+                    <widget name="web_ribbon" text="Expirada" bg_color="text-bg-danger" invisible="state != 'expired'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="allowed_access_count"/>
+                        </group>
+                        <group>
+                            <field name="start_date"/>
+                            <field name="expiration_date"/>
+                            <field name="state" widget="badge" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Productos / Servicios" name="sales_modal_products">
+                            <field name="product_line_ids" nolabel="1" context="{'default_license_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="allowed_access_count" string="Cantidad de usuarios"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Equipos" name="sales_modal_equipment">
+                            <field name="equipment_ids" nolabel="1" context="{'default_partner_id': partner_id}">
+                                <list editable="bottom">
+                                    <field name="partner_id" column_invisible="True"/>
+                                    <field name="name"/>
+                                    <field name="equipment_type"/>
+                                    <field name="product_ids" string="Productos / Servicios" widget="many2many_tags"/>
+                                    <field name="specifications" string="Características" optional="show" readonly="False"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_alsa_license_kanban" model="ir.ui.view">
+        <field name="name">alsa.license.kanban</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_small_column" sample="1">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_summary"/>
+                <field name="expiration_date"/>
+                <field name="allowed_access_count"/>
+                <field name="product_count"/>
+                <field name="equipment_count"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <strong class="fs-5"><field name="name"/></strong>
+                            <field name="state" widget="badge"/>
+                        </div>
+                        <div class="text-muted mt-2"><field name="partner_id"/></div>
+                        <div class="mt-2 text-truncate"><field name="product_summary"/></div>
+                        <div class="d-flex justify-content-between mt-3">
+                            <span>Vence: <field name="expiration_date"/></span>
+                            <span>Accesos: <field name="allowed_access_count"/></span>
+                        </div>
+                        <footer>
+                            <span><field name="product_count"/> productos</span>
+                            <span class="ms-auto"><field name="equipment_count"/> equipos</span>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_alsa_license_calendar" model="ir.ui.view">
+        <field name="name">alsa.license.calendar</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <calendar string="Vencimientos de licencias"
+                      date_start="expiration_date"
+                      color="partner_id"
+                      mode="month"
+                      quick_create="false"
+                      event_open_popup="true"
+                      form_view_id="%(view_alsa_license_form)d">
+                <field name="partner_id"/>
+                <field name="name"/>
+                <field name="product_summary"/>
+                <field name="allowed_access_count"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_alsa_license_search" model="ir.ui.view">
+        <field name="name">alsa.license.search</field>
+        <field name="model">alsa.license</field>
+        <field name="arch" type="xml">
+            <search string="Buscar licencias">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_id" string="Producto principal"/>
+                <field name="product_line_ids" string="Productos / Servicios"/>
+                <filter name="active" string="Vigentes" domain="[('state', '=', 'active')]"/>
+                <filter name="expired" string="Expiradas" domain="[('state', '=', 'expired')]"/>
+                <separator/>
+                <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                <filter name="group_product" string="Producto / Servicio" context="{'group_by': 'product_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_alsa_license" model="ir.actions.act_window">
+        <field name="name">Licencias</field>
+        <field name="res_model">alsa.license</field>
+        <field name="view_mode">list,kanban,calendar,form</field>
+        <field name="search_view_id" ref="view_alsa_license_search"/>
+        <field name="context">{'search_default_active': 1, 'alsa_license_calendar': True}</field>
+    </record>
+
+    <menuitem id="menu_alsa_licensing_root" name="Licencias y Equipos" sequence="35"/>
+    <menuitem id="menu_alsa_license" name="Licencias" parent="menu_alsa_licensing_root" action="action_alsa_license" sequence="10"/>
+</odoo>

@@ -4,7 +4,7 @@
         <field name="name">cotizacion.express.tree</field>
         <field name="model">cotizacion.express</field>
         <field name="arch" type="xml">
-            <list>
+            <list js_class="cotizacion_global_totals_list" default_order="write_date desc, id desc">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="date"/>
@@ -34,10 +34,10 @@
 
                 <sheet class="o_cotizacion_express_sheet">
                     <div class="o_cotizacion_express_controls">
-                        <div class="btn-toggle btn-toggle-mode" title="Ver Chatter">
+                        <a class="btn-toggle btn-toggle-mode" role="button" title="Ver Chatter">
                             <i class="fa fa-comments icon-chatter"/>
                             <i class="fa fa-file-pdf-o icon-pdf"/>
-                        </div>
+                        </a>
                     </div>
                     <div style="display: flex; width: 100%; gap: 16px;">
                         <div class="o_cotizacion_left_column" style="flex: 1.2; min-width: 0; border-right: 1px solid #dee2e6; padding-right: 16px;">
@@ -349,6 +349,7 @@
         <field name="name">Resultados de Ventas</field>
         <field name="res_model">cotizacion.express.option.line</field>
         <field name="view_mode">graph,pivot</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
         <field name="domain">[('cotizacion_state', '=', 'confirmed'), ('option_selected', '=', True)]</field>
         <field name="context">{'search_default_group_product': 1}</field>
     </record>
@@ -357,6 +358,7 @@
         <field name="name">Cotizaciones Express</field>
         <field name="res_model">cotizacion.express</field>
         <field name="view_mode">list,kanban,form,graph,pivot</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
     </record>
 
     <!-- Purge ALL stale ir.actions.act_window.view records with view_mode='tree'
@@ -367,20 +369,31 @@
         <field name="name">Etapas de Cotización</field>
         <field name="res_model">cotizacion.express.stage</field>
         <field name="view_mode">list,form</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
     </record>
 
     <!-- MENUS -->
-    <menuitem id="menu_cotizaciones_list" name="Cotizaciones" parent="menu_cotizaciones_root" action="action_cotizacion_express" sequence="10"/>
-    <menuitem id="menu_cotizacion_express_report" name="Resultados de Ventas" parent="menu_cotizaciones_root" action="action_cotizacion_express_report" sequence="20"/>
-    <menuitem id="menu_cotizacion_express_stage" name="Etapas" parent="menu_cotizaciones_root" action="action_cotizacion_express_stage" sequence="40"/>
+    <menuitem id="menu_cotizaciones_list" name="Cotizaciones" parent="menu_cotizaciones_root" action="action_cotizacion_express" sequence="10" groups="cotizaciones_express.group_cotizaciones_express_user"/>
+    <menuitem id="menu_cotizacion_express_report" name="Resultados de Ventas" parent="menu_cotizaciones_root" action="action_cotizacion_express_report" sequence="20" groups="cotizaciones_express.group_cotizaciones_express_user"/>
+    <menuitem id="menu_cotizacion_express_stage" name="Etapas" parent="menu_cotizaciones_root" action="action_cotizacion_express_stage" sequence="40" groups="cotizaciones_express.group_cotizaciones_express_user"/>
 
     <record id="action_cotizacion_express_tag" model="ir.actions.act_window">
         <field name="name">Etiquetas de Cotización</field>
         <field name="res_model">cotizacion.express.tag</field>
         <field name="view_mode">list,form</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
     </record>
 
-    <menuitem id="menu_cotizacion_express_tag" name="Etiquetas" parent="menu_cotizaciones_root" action="action_cotizacion_express_tag" sequence="45"/>
+    <menuitem id="menu_cotizacion_express_tag" name="Etiquetas" parent="menu_cotizaciones_root" action="action_cotizacion_express_tag" sequence="45" groups="cotizaciones_express.group_cotizaciones_express_user"/>
+
+    <record id="action_cotizacion_confirm_wizard" model="ir.actions.act_window">
+        <field name="name">Confirmar Venta - Seleccionar Opciones</field>
+        <field name="res_model">cotizacion.confirm.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
+    </record>
+
     <record id="view_cotizacion_confirm_wizard_form" model="ir.ui.view">
         <field name="name">cotizacion.confirm.wizard.form</field>
         <field name="model">cotizacion.confirm.wizard</field>
@@ -392,6 +405,7 @@
                 </p>
                 <field name="line_ids" nolabel="1">
                     <list editable="bottom" create="false" delete="false">
+                        <field name="option_id" column_invisible="1"/>
                         <field name="selected" widget="boolean_toggle"/>
                         <field name="name" string="Opción"/>
                         <field name="currency_id" column_invisible="1"/>
@@ -475,10 +489,11 @@
         <field name="name">Plantillas de Cotización</field>
         <field name="res_model">cotizacion.express.template</field>
         <field name="view_mode">list,form</field>
+        <field name="group_ids" eval="[(4, ref('cotizaciones_express.group_cotizaciones_express_user'))]"/>
     </record>
 
     <!-- MENUS FOR TEMPLATES -->
-    <menuitem id="menu_cotizacion_express_template" name="Plantillas de Cotización" parent="menu_cotizaciones_root" action="action_cotizacion_express_template" sequence="25"/>
+    <menuitem id="menu_cotizacion_express_template" name="Plantillas de Cotización" parent="menu_cotizaciones_root" action="action_cotizacion_express_template" sequence="25" groups="cotizaciones_express.group_cotizaciones_express_user"/>
 
     <!-- FORM VIEW FOR TEMPLATE LINE POP-UP MODAL -->
     <record id="view_cotizacion_express_template_option_line_form" model="ir.ui.view">

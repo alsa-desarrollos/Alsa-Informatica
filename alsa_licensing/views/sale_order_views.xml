@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_alsa_licensing" model="ir.ui.view">
+        <field name="name">product.template.form.alsa.licensing</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="alsa_is_licensable"/>
+                <field name="alsa_license_duration_months" invisible="not alsa_is_licensable" required="alsa_is_licensable"/>
+                <field name="alsa_accesses_per_unit" invisible="not alsa_is_licensable" required="alsa_is_licensable"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="sale_order_form_alsa_licensing" model="ir.ui.view">
+        <field name="name">sale.order.form.alsa.licensing</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="after">
+                <field name="alsa_is_licensable" optional="hide" readonly="1"/>
+                <field name="alsa_license_id" domain="[('partner_id', '=', parent.partner_id)]" optional="hide"/>
+                <field name="alsa_license_start_date" optional="hide"/>
+                <field name="alsa_license_expiration_date" optional="hide"/>
+                <field name="alsa_license_access_count" optional="hide"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//div[@name='ordered_qty']" position="after">
+                <field name="alsa_is_licensable" readonly="1"/>
+                <field name="alsa_license_id" domain="[('partner_id', '=', parent.partner_id)]" invisible="not alsa_is_licensable"/>
+                <field name="alsa_license_start_date" invisible="not alsa_is_licensable"/>
+                <field name="alsa_license_expiration_date" invisible="not alsa_is_licensable"/>
+                <field name="alsa_license_access_count" invisible="not alsa_is_licensable"/>
+            </xpath>
+            <xpath expr="//form/sheet/notebook" position="inside">
+                <page string="Licencias" name="alsa_licensing" invisible="not partner_id">
+                    <group>
+                        <group>
+                            <field name="alsa_active_license_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <separator string="Licencias del cliente"/>
+                    <field name="alsa_license_selection_line_ids" nolabel="1">
+                        <list editable="bottom" delete="0">
+                            <field name="selected" widget="boolean_toggle" width="65px"/>
+                            <field name="order_partner_id" column_invisible="True"/>
+                            <field name="order_commercial_partner_id" column_invisible="True"/>
+                            <field name="license_id" width="160px" domain="[('partner_id.commercial_partner_id', '=', order_commercial_partner_id)]" context="{'default_partner_id': order_partner_id}" options="{'no_quick_create': True}"/>
+                            <field name="product_summary" optional="show"/>
+                            <field name="start_date" optional="hide" readonly="False"/>
+                            <field name="expiration_date" width="115px" readonly="False"/>
+                            <field name="allowed_access_count" width="80px" readonly="False"/>
+                            <field name="state" widget="badge" width="85px"/>
+                            <button name="action_open_license_details" type="object" string="Información" icon="fa-info-circle"/>
+                        </list>
+                    </field>
+                    <field name="alsa_license_ids" invisible="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

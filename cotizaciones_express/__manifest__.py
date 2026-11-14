@@ -1,6 +1,6 @@
 {
     'name': 'Cotizaciones Express',
-    'version': '19.0.1.0.53',
+    'version': '19.0.1.0.66',
     'category': 'Sales/Sales',
     'summary': 'Generación ágil de cotizaciones comerciales con múltiples opciones, previsualización PDF interactiva en vivo e integración de firmas.',
     'description': """
@@ -22,11 +22,14 @@ Características Principales:
     'website': 'https://alsainformatica.com.mx',
     'depends': ['base', 'contacts', 'sale', 'mail'],
     'data': [
+        'security/cotizacion_security.xml',
         'security/ir.model.access.csv',
         'data/ir_sequence.xml',
         'data/stages.xml',
+        'data/export_templates.xml',
         'views/seller_signature_views.xml',
         'views/cotizacion_views.xml',
+        'views/access_settings_views.xml',
         'report/cotizacion_preview.xml',
         'report/cotizacion_report.xml',
         'report/cotizacion_contpaqi_report.xml',
@@ -36,6 +39,7 @@ Características Principales:
         'web.assets_backend': [
             'cotizaciones_express/static/src/css/cotizacion_form.css',
             'cotizaciones_express/static/src/js/cotizacion_fix.js',
+            'cotizaciones_express/static/src/js/cotizacion_list_totals.js',
         ],
     },
     'images': ['static/description/icon.png'],

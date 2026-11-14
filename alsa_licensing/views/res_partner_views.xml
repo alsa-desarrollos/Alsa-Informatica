@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_alsa_licensing" model="ir.ui.view">
+        <field name="name">res.partner.form.alsa.licensing</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/notebook" position="inside">
+                <page string="Licencias y Equipos" name="alsa_licensing">
+                    <group>
+                        <field name="alsa_active_license_count" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Licencias" name="alsa_partner_licenses">
+                            <field name="alsa_license_ids" context="{'default_partner_id': id}">
+                                <list editable="bottom" open_form_view="1" decoration-danger="state == 'expired'" decoration-success="state == 'active'">
+                                    <field name="name"/>
+                                    <field name="product_id" string="Producto / Servicio" required="True"/>
+                                    <field name="product_summary" optional="hide"/>
+                                    <field name="start_date"/>
+                                    <field name="expiration_date"/>
+                                    <field name="allowed_access_count"/>
+                                    <field name="state" widget="badge" readonly="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Equipos" name="alsa_partner_equipment">
+                            <field name="alsa_equipment_ids" context="{'default_partner_id': id}">
+                                <list editable="bottom" open_form_view="1">
+                                    <field name="name"/>
+                                    <field name="equipment_type"/>
+                                    <field name="partner_commercial_id" column_invisible="True"/>
+                                    <field name="specifications" string="Características" width="360px" readonly="False"/>
+                                    <field name="product_ids" string="Productos / Servicios" widget="many2many_tags" optional="show"/>
+                                    <field name="license_id" domain="[('partner_id.commercial_partner_id', '=', partner_commercial_id)]" context="{'default_partner_id': parent.id}" options="{'no_quick_create': True}" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

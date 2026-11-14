@@ -1,8 +1,14 @@
 import logging
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, RedirectWarning
 
 _logger = logging.getLogger(__name__)
+
+DEFAULT_TERMS_HTML = (
+    '<p>1.- Los precios incluyen IVA y son válidos por 10 días y/o agotar existencias.</p>'
+    '<p>2.- Tiempo de entrega: 2 - 3 días contra confirmación del pedido.</p>'
+    '<p>3.- Forma de pago: Contado anticipado para ordenar.</p>'
+)
 
 class CotizacionExpressStage(models.Model):
     _name = 'cotizacion.express.stage'
@@ -62,7 +68,7 @@ class CotizacionExpress(models.Model):
     reply_to = fields.Char(
         string='Responder a (Email)',
         help="El cliente responderá a esta dirección de correo al contestar el correo de la cotización.",
-        default=lambda self: self.env.user.email or self.env.user.login
+        default='julio.hardware@alsainformatica.com.mx'
     )
     signature_id = fields.Many2one('seller.signature', string='Firma del Vendedor',
                                    domain="[('user_id', '=', user_id)]")
@@ -87,12 +93,22 @@ class CotizacionExpress(models.Model):
 
     company_id = fields.Many2one('res.company', string='Compañía', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id', string='Moneda')
-    notes = fields.Html(string='Notas / Términos')
+    notes = fields.Html(
+        string='Notas / Términos',
+        default=DEFAULT_TERMS_HTML,
+    )
     preview_html = fields.Html(string='Vista Previa', compute='_compute_preview_html', sanitize=False)
     template_id = fields.Many2one('cotizacion.express.template', string='Cargar Plantilla')
     tag_ids = fields.Many2many('cotizacion.express.tag', string='Etiquetas')
     amount_total = fields.Monetary(string='Total', compute='_compute_amount_total', store=True)
     amount_confirmed = fields.Monetary(string='Monto Confirmado', compute='_compute_amount_confirmed', store=True, currency_field='currency_id')
+
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        if 'notes' in fields_list and not values.get('notes'):
+            values['notes'] = DEFAULT_TERMS_HTML
+        return values
 
     @api.depends('amount_total', 'state')
     def _compute_amount_confirmed(self):
@@ -114,14 +130,28 @@ class CotizacionExpress(models.Model):
         if self.stage_id:
             self.state = self.stage_id.state_type
 
-    @api.depends('write_date', 'name')
+    @api.depends(
+        'write_date',
+        'name',
+        'option_ids.sequence',
+        'option_ids.write_date',
+        'option_ids.line_ids.sequence',
+        'option_ids.line_ids.write_date',
+    )
     def _compute_preview_html(self):
         for rec in self:
             if rec.id and isinstance(rec.id, int):
-                t = int(rec.write_date.timestamp()) if rec.write_date else 0
+                # Las líneas y opciones se guardan en modelos hijos, por lo que
+                # moverlas no siempre actualiza el write_date de la cotización.
+                # Usar la fecha más reciente evita mostrar un PDF en caché.
+                write_dates = [rec.write_date]
+                write_dates += rec.option_ids.mapped('write_date')
+                write_dates += rec.option_ids.line_ids.mapped('write_date')
+                latest_write = max((date for date in write_dates if date), default=False)
+                t = int(latest_write.timestamp() * 1000000) if latest_write else 0
                 safe_name = (rec.name or '').replace('/', '_').replace('\\', '_').strip()
                 filename = f"Cotizacion_{safe_name}.pdf" if safe_name else "Cotizacion.pdf"
-                pdf_url = f"/report/pdf/cotizaciones_express.cotizacion_preview_v3/{rec.id}"
+                pdf_url = f"/cotizacion/pdf/{rec.id}"
                 rec.preview_html = (
                     f'<div style="width: 100%; height: 100%; min-height: 650px;">'
                     f'<iframe src="{pdf_url}?filename={filename}&t={t}#zoom=page-width&view=FitH" '
@@ -209,11 +239,49 @@ class CotizacionExpress(models.Model):
             stage = self.env['cotizacion.express.stage'].search([('state_type', '=', vals['state'])], limit=1)
             if stage:
                 vals['stage_id'] = stage.id
+
+        is_confirming = vals.get('state') == 'confirmed'
+        needs_confirmation = is_confirming and any(
+            record.state != 'confirmed' for record in self
+        )
+        if needs_confirmation and not self.env.context.get('from_wizard'):
+            self.ensure_one()
+
+            pending_vals = {
+                key: value
+                for key, value in vals.items()
+                if key not in ('state', 'stage_id')
+            }
+            if pending_vals:
+                super(CotizacionExpress, self).write(pending_vals)
+
+            if not self.option_ids:
+                raise UserError(_('Debe agregar al menos una opción antes de confirmar la cotización.'))
+
+            if len(self.option_ids) == 1:
+                self.option_ids.selected = True
+                self.with_context(from_wizard=True).action_confirm_sale_order()
+                return True
+
+            action = self.env.ref('cotizaciones_express.action_cotizacion_confirm_wizard')
+            raise RedirectWarning(
+                _("Para confirmar esta cotización, por favor seleccione las opciones de venta confirmadas."),
+                action.id,
+                _("Seleccionar Opciones"),
+                {'default_cotizacion_id': self.id, 'active_id': self.id}
+            )
                 
-        res = super(CotizacionExpress, self).write(vals)
-        return res
+        return super(CotizacionExpress, self).write(vals)
 
     def copy(self, default=None):
+        if not self:
+            return self
+        if len(self) > 1:
+            copied_records = self.env[self._name]
+            for record in self:
+                copied_records |= record.copy(default)
+            return copied_records
+
         self.ensure_one()
         default = dict(default or {})
         
@@ -281,14 +349,30 @@ class CotizacionExpress(models.Model):
 
     def _message_post_after_hook(self, message, msg_dict):
         res = super()._message_post_after_hook(message, msg_dict)
+        if self.env.context.get('skip_stage_update_on_message'):
+            return res
         for record in self:
-            if record.state == 'draft' and msg_dict.get('message_type') == 'email':
+            if record.state == 'draft' and msg_dict.get('message_type') in ('email', 'comment'):
                 stage = self.env['cotizacion.express.stage'].search([('state_type', '=', 'sent')], limit=1)
-                record.write({'state': 'sent', 'stage_id': stage.id if stage else False})
+                record.with_context(skip_stage_update_on_message=True).write({
+                    'state': 'sent',
+                    'stage_id': stage.id if stage else False
+                })
         return res
 
     def action_confirm(self):
         self.ensure_one()
+        if not self.option_ids:
+            raise UserError(_('Debe agregar al menos una opción antes de confirmar la cotización.'))
+
+        if len(self.option_ids) == 1:
+            self.option_ids.selected = True
+            self.with_context(from_wizard=True).action_confirm_sale_order()
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'reload',
+            }
+
         wizard_lines = []
         for option in self.option_ids:
             wizard_lines.append((0, 0, {
@@ -326,14 +410,14 @@ class CotizacionExpress(models.Model):
             'order_line': [],
             'is_express': True,
         }
-        order = self.env['sale.order'].create(vals)
+        order = self.env['sale.order'].sudo().create(vals)
         for option in selected:
             for line in option.line_ids:
-                product = self.env['product.product'].search([('name', '=', line.name)], limit=1)
+                product = self.env['product.product'].sudo().search([('name', '=', line.name)], limit=1)
                 if not product:
-                    product = self.env['product.product'].search([('name', '=', 'Concepto Cotización')], limit=1)
+                    product = self.env['product.product'].sudo().search([('name', '=', 'Concepto Cotización')], limit=1)
                 if not product:
-                    product = self.env['product.product'].create({
+                    product = self.env['product.product'].sudo().create({
                         'name': 'Concepto Cotización',
                         'type': 'service',
                         'sale_ok': True,
@@ -348,24 +432,39 @@ class CotizacionExpress(models.Model):
                     'product_uom_qty': line.quantity,
                     'price_unit': line.price_unit,
                     'discount': final_discount,
-                    'tax_ids': [(6, 0, self.env['account.tax'].search([
+                    'tax_ids': [(6, 0, self.env['account.tax'].sudo().search([
                         ('amount', '=', line.iva_percent),
                         ('type_tax_use', '=', 'sale'),
                     ], limit=1).ids)] if line.iva_percent else False,
                 }
-                self.env['sale.order.line'].create(order_line_vals)
+                self.env['sale.order.line'].sudo().create(order_line_vals)
                 
-        if self.crm_lead_id and 'sale_order_id' in self.crm_lead_id._fields:
-            self.crm_lead_id.write({'sale_order_id': order.id})
+        if 'crm_lead_id' in self._fields and self.crm_lead_id and 'sale_order_id' in self.crm_lead_id._fields:
+            self.crm_lead_id.sudo().write({'sale_order_id': order.id})
         self.state = 'confirmed'
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'sale.order',
-            'view_mode': 'form',
-            'res_id': order.id,
-            'name': _('Orden de Venta'),
-            'context': {'show_express_orders': True},
-        }
+        
+        has_access = self.env['sale.order'].has_access('read')
+        if has_access:
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'sale.order',
+                'view_mode': 'form',
+                'res_id': order.id,
+                'name': _('Orden de Venta'),
+                'context': {'show_express_orders': True},
+            }
+        else:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Cotización Confirmada'),
+                    'message': _('La cotización se ha confirmado y el pedido de venta fue creado exitosamente por el sistema.'),
+                    'sticky': False,
+                    'type': 'success',
+                    'next': {'type': 'ir.actions.act_window_close'},
+                }
+            }
 
     def action_print_pdf(self):
         self.ensure_one()
@@ -391,6 +490,7 @@ class CotizacionExpressOption(models.Model):
     _name = 'cotizacion.express.option'
     _description = 'Opción / Paquete de Cotización'
     _rec_name = 'name'
+    _order = 'sequence, id'
 
     cotizacion_id = fields.Many2one('cotizacion.express', string='Cotización', ondelete='cascade')
     name = fields.Char(string='Nombre de la Opción', required=True, default='Opción')
@@ -447,6 +547,7 @@ class CotizacionExpressOptionLine(models.Model):
     _name = 'cotizacion.express.option.line'
     _description = 'Producto de Opción'
     _rec_name = 'name'
+    _order = 'sequence, id'
 
     option_id = fields.Many2one('cotizacion.express.option', string='Opción', ondelete='cascade')
     name = fields.Char(string='Producto', required=True)
@@ -525,17 +626,38 @@ class CotizacionConfirmWizard(models.TransientModel):
     cotizacion_id = fields.Many2one('cotizacion.express', string='Cotización', required=True)
     line_ids = fields.One2many('cotizacion.confirm.wizard.line', 'wizard_id', string='Opciones')
 
+    @api.model
+    def default_get(self, fields_list):
+        res = super(CotizacionConfirmWizard, self).default_get(fields_list)
+        cotizacion_id = self.env.context.get('default_cotizacion_id') or self.env.context.get('active_id')
+        if cotizacion_id:
+            cotizacion = self.env['cotizacion.express'].browse(cotizacion_id)
+            if cotizacion.exists():
+                res['cotizacion_id'] = cotizacion.id
+                lines = []
+                for option in cotizacion.option_ids:
+                    lines.append((0, 0, {
+                        'option_id': option.id,
+                        'selected': option.selected,
+                    }))
+                res['line_ids'] = lines
+        return res
+
     def action_confirm(self):
         self.ensure_one()
         for line in self.line_ids:
             line.option_id.selected = line.selected
         
-        self.cotizacion_id.state = 'confirmed'
+        self.cotizacion_id.with_context(from_wizard=True).action_confirm_sale_order()
         
         stage = self.env['cotizacion.express.stage'].search([('state_type', '=', 'confirmed')], limit=1)
         if stage:
-            self.cotizacion_id.stage_id = stage.id
-        return {'type': 'ir.actions.act_window_close'}
+            self.cotizacion_id.with_context(from_wizard=True).stage_id = stage.id
+            
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
 
 class CotizacionConfirmWizardLine(models.TransientModel):
@@ -543,7 +665,7 @@ class CotizacionConfirmWizardLine(models.TransientModel):
     _description = 'Línea de Confirmación de Opción'
 
     wizard_id = fields.Many2one('cotizacion.confirm.wizard', required=True, ondelete='cascade')
-    option_id = fields.Many2one('cotizacion.express.option', string='Opción', required=True, readonly=True)
+    option_id = fields.Many2one('cotizacion.express.option', string='Opción', required=True)
     name = fields.Char(related='option_id.name', string='Nombre de la Opción', readonly=True)
     total = fields.Monetary(related='option_id.total', string='Total', currency_field='currency_id', readonly=True)
     currency_id = fields.Many2one('res.currency', related='option_id.currency_id')
@@ -556,7 +678,10 @@ class CotizacionExpressTemplate(models.Model):
 
     name = fields.Char(string='Nombre de la Plantilla', required=True)
     option_ids = fields.One2many('cotizacion.express.template.option', 'template_id', string='Opciones / Paquetes')
-    notes = fields.Html(string='Notas / Términos')
+    notes = fields.Html(
+        string='Notas / Términos',
+        default=DEFAULT_TERMS_HTML,
+    )
 
 
 class CotizacionExpressTemplateOption(models.Model):

@@ -1,11 +1,95 @@
+import re
+from urllib.parse import quote
+
 from odoo import http
-from odoo.http import request
+from odoo.addons.web.controllers.report import ReportController
+from odoo.http import content_disposition, request
+
+
+class CotizacionExpressReportController(ReportController):
+
+    @http.route([
+        '/report/<path:converter>/<reportname>',
+        '/report/<path:converter>/<reportname>/<docids>',
+    ], type='http', auth="user", website=True)
+    def report_routes(self, reportname, docids=None, converter=None, **data):
+        if (
+            reportname.startswith('cotizaciones_express.')
+            and not request.env.user.has_group(
+                'cotizaciones_express.group_cotizaciones_express_user'
+            )
+        ):
+            return request.not_found()
+
+        response = super(CotizacionExpressReportController, self).report_routes(
+            reportname, docids=docids, converter=converter, **data
+        )
+        
+        if reportname == 'cotizaciones_express.cotizacion_preview_v3' and response and hasattr(response, 'headers'):
+            filename = request.params.get('filename')
+            if not filename and docids:
+                try:
+                    ids = [int(x) for x in docids.split(',')]
+                    if ids:
+                        rec = request.env['cotizacion.express'].browse(ids[0])
+                        if rec.exists():
+                            safe_name = (rec.name or '').replace('/', '_').replace('\\', '_').strip()
+                            filename = f"{safe_name}.pdf" if safe_name else "Cotizacion.pdf"
+                except Exception:
+                    pass
+
+            if filename:
+                try:
+                    encoded_filename = quote(filename)
+                    response.headers.set('Content-Disposition', f'inline; filename="{filename}"; filename*=UTF-8\'\'{encoded_filename}')
+                except Exception:
+                    response.headers.set('Content-Disposition', f'inline; filename="{filename}"')
+        
+        return response
 
 
 class CotizacionExpressController(http.Controller):
 
+    @staticmethod
+    def _has_module_access():
+        return request.env.user.has_group(
+            'cotizaciones_express.group_cotizaciones_express_user'
+        )
+
+    @http.route('/cotizacion/pdf/<int:cotizacion_id>', type='http', auth='user', website=False)
+    def cotizacion_pdf(self, cotizacion_id, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
+        cotizacion = request.env['cotizacion.express'].browse(cotizacion_id)
+        if not cotizacion.exists():
+            return request.not_found(description='Cotización no encontrada')
+
+        report = request.env.ref('cotizaciones_express.report_cotizacion_express')
+        pdf_content, _ = report._render_qweb_pdf(
+            report.report_name,
+            res_ids=[cotizacion.id],
+        )
+
+        quotation_number = re.sub(
+            r'[^\w.-]+',
+            '_',
+            cotizacion.name or str(cotizacion.id),
+        ).strip('._') or str(cotizacion.id)
+        filename = f'Cotizacion_{quotation_number}.pdf'
+
+        return request.make_response(pdf_content, headers=[
+            ('Content-Type', 'application/pdf'),
+            ('Content-Length', str(len(pdf_content))),
+            ('Content-Disposition', content_disposition(filename, disposition_type='inline')),
+            ('Cache-Control', 'no-cache, no-store, must-revalidate'),
+            ('Pragma', 'no-cache'),
+            ('Expires', '0'),
+        ])
+
     @http.route('/cotizacion/preview_html/<int:cotizacion_id>', type='http', auth='user', website=False)
     def preview_cotizacion_html(self, cotizacion_id, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
         if cotizacion_id > 0:
             cotizacion = request.env['cotizacion.express'].browse(cotizacion_id)
             if not cotizacion.exists():
@@ -83,7 +167,7 @@ class CotizacionExpressController(http.Controller):
                 var pdfLink = pDoc.getElementById('cotizacion_pdf_link');
                 if (pdfLink) {
                     if (parentId > 0) {
-                        pdfLink.href = "/report/pdf/cotizaciones_express.cotizacion_preview_v3/" + parentId;
+                        pdfLink.href = "/cotizacion/pdf/" + parentId;
                         pdfLink.style.display = "";
                     } else {
                         pdfLink.style.display = "none";
@@ -131,6 +215,8 @@ class CotizacionExpressController(http.Controller):
 
     @http.route('/cotizacion/image/<string:model>/<int:record_id>/<string:field>', type='http', auth='user', website=False)
     def get_image(self, model, record_id, field, **kwargs):
+        if not self._has_module_access():
+            return request.not_found()
         Model = request.env.get(model)
         if not Model:
             return request.not_found(description='Modelo no encontrado')
