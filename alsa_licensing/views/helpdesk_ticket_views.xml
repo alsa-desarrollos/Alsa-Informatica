@@ -9,7 +9,7 @@
                 <page string="Equipos a atender" name="alsa_licensing" invisible="not partner_id">
                     <separator string="Seleccione los equipos que se atenderán"/>
                     <field name="alsa_equipment_selection_line_ids" nolabel="1">
-                        <list editable="bottom" delete="0">
+                        <list editable="bottom" delete="1">
                             <field name="selected" string="Atender" widget="boolean_toggle" width="70px"/>
                             <field name="equipment_id" string="Equipo" width="180px" domain="[('partner_id', '=', parent.partner_id)]" context="{'default_partner_id': parent.partner_id}"/>
                             <field name="partner_commercial_id" column_invisible="True"/>
