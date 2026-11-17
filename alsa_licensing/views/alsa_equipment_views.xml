@@ -109,11 +109,12 @@
                                 Seleccione una licencia asociada para registrar los productos, servicios y usuarios relacionados.
                             </div>
                             <field name="license_product_line_ids" nolabel="1" invisible="not license_id" context="{'default_license_id': license_id}">
-                                <list editable="bottom" create="1" edit="1" delete="1" open_form_view="1" string="Productos / Servicios relacionados">
+                                <list editable="bottom" create="1" edit="1" delete="1" string="Productos / Servicios relacionados">
                                     <field name="product_default_code" string="Código/Número de referencia"/>
                                     <field name="product_id" string="Producto / Servicio"/>
                                     <field name="serial_number" string="Número de serie"/>
                                     <field name="allowed_access_count" string="Cantidad de usuarios" width="140px"/>
+                                    <button name="action_open_details" type="object" string="Vista"/>
                                 </list>
                                 <form string="Producto / Servicio relacionado">
                                     <group>

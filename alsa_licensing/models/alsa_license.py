@@ -294,6 +294,19 @@ class AlsaLicenseLine(models.Model):
                     "Los accesos o usuarios de la línea deben ser mayores que cero."
                 )
 
+    def action_open_details(self):
+        self.ensure_one()
+        form_view = self.env.ref("alsa_licensing.view_alsa_license_line_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Producto / Servicio de la licencia",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "views": [(form_view.id, "form")],
+            "target": "new",
+        }
+
     def init(self):
         """Migrate legacy product lines and Studio serial numbers."""
         self.env.cr.execute(

@@ -1,5 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_alsa_license_line_form" model="ir.ui.view">
+        <field name="name">alsa.license.line.form</field>
+        <field name="model">alsa.license.line</field>
+        <field name="arch" type="xml">
+            <form string="Producto / Servicio de la licencia">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="product_id"/>
+                            <field name="quantity"/>
+                            <field name="sale_order_line_id"/>
+                        </group>
+                        <group>
+                            <field name="license_id" readonly="1"/>
+                            <field name="product_default_code"/>
+                            <field name="allowed_access_count"/>
+                            <field name="serial_number"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="view_alsa_license_list" model="ir.ui.view">
         <field name="name">alsa.license.list</field>
         <field name="model">alsa.license</field>
