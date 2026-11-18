@@ -4,7 +4,7 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 
 class AlsaCustomerCreditMovement(models.Model):
     _name = "alsa.customer.credit.movement"
-    _description = "Movimiento de saldo a favor"
+    _description = "Movimiento de saldo de cliente"
     _order = "movement_datetime desc, id desc"
     _rec_name = "name"
 
@@ -52,6 +52,21 @@ class AlsaCustomerCreditMovement(models.Model):
         readonly=True,
         default=fields.Datetime.now,
     )
+    balance_kind = fields.Selection(
+        selection=[
+            ("credit", "Saldo a favor"),
+            ("discount", "Saldo de descuento"),
+        ],
+        string="Clase de saldo",
+        required=True,
+        readonly=True,
+        default="credit",
+        index=True,
+        help=(
+            "El saldo a favor representa dinero o anticipos del cliente. "
+            "El saldo de descuento representa un beneficio comercial no reembolsable."
+        ),
+    )
     movement_type = fields.Selection(
         selection=[
             ("increase", "Aumento"),
@@ -91,23 +106,30 @@ class AlsaCustomerCreditMovement(models.Model):
     )
 
     @api.model
-    def _get_partner_balance(self, partner, company):
+    def _get_partner_balance(self, partner, company, balance_kind="credit"):
         movements = self.search(
             [
                 ("partner_id", "=", partner.id),
                 ("company_id", "=", company.id),
+                ("balance_kind", "=", balance_kind),
             ]
         )
         return sum(movements.mapped("amount"))
 
     @api.model
     def _create_balance_adjustment(
-        self, partner, company, new_balance, reason, reference=None
+        self,
+        partner,
+        company,
+        balance_kind,
+        new_balance,
+        reason,
+        reference=None,
     ):
         if not self.env.user.has_group(
             "alsa_customer_credit.group_alsa_customer_credit_manager"
         ):
-            raise AccessError(_("No tiene permiso para modificar saldos a favor."))
+            raise AccessError(_("No tiene permiso para modificar saldos de clientes."))
 
         partner = partner.exists()
         company = company.exists()
@@ -117,11 +139,13 @@ class AlsaCustomerCreditMovement(models.Model):
             raise ValidationError(_("Debe indicar el motivo del ajuste."))
         if company not in self.env.companies:
             raise AccessError(_("No tiene acceso a la compañía seleccionada."))
+        if balance_kind not in {"credit", "discount"}:
+            raise ValidationError(_("La clase de saldo no es válida."))
 
         currency = company.currency_id
         new_balance = currency.round(new_balance)
         if currency.compare_amounts(new_balance, 0.0) < 0:
-            raise ValidationError(_("El saldo a favor no puede ser negativo."))
+            raise ValidationError(_("El saldo del cliente no puede ser negativo."))
 
         # Todos los ajustes pasan por este bloqueo para evitar que dos usuarios
         # calculen simultáneamente la diferencia desde el mismo saldo anterior.
@@ -130,7 +154,7 @@ class AlsaCustomerCreditMovement(models.Model):
             [partner.id],
         )
         balance_before = currency.round(
-            self._get_partner_balance(partner, company)
+            self._get_partner_balance(partner, company, balance_kind)
         )
         difference = currency.round(new_balance - balance_before)
         if currency.is_zero(difference):
@@ -140,6 +164,7 @@ class AlsaCustomerCreditMovement(models.Model):
             {
                 "partner_id": partner.id,
                 "company_id": company.id,
+                "balance_kind": balance_kind,
                 "movement_type": "increase" if difference > 0 else "decrease",
                 "amount": difference,
                 "balance_before": balance_before,
@@ -149,10 +174,16 @@ class AlsaCustomerCreditMovement(models.Model):
                 "user_id": self.env.user.id,
             }
         )
+        balance_label = (
+            _("Saldo a favor")
+            if balance_kind == "credit"
+            else _("Saldo de descuento")
+        )
         partner.message_post(
             body=_(
-                "Saldo a favor ajustado de %(before).2f %(currency)s a "
+                "%(kind)s ajustado de %(before).2f %(currency)s a "
                 "%(after).2f %(currency)s. Motivo: %(reason)s",
+                kind=balance_label,
                 before=balance_before,
                 after=new_balance,
                 currency=currency.name,
@@ -171,22 +202,25 @@ class AlsaCustomerCreditMovement(models.Model):
             if not values.get("reason", "").strip():
                 raise ValidationError(_("Debe indicar el motivo del ajuste."))
             if values.get("name", _("Nuevo")) == _("Nuevo"):
+                sequence_code = (
+                    "alsa.customer.discount.movement"
+                    if values.get("balance_kind") == "discount"
+                    else "alsa.customer.credit.movement"
+                )
                 values["name"] = (
-                    self.env["ir.sequence"].next_by_code(
-                        "alsa.customer.credit.movement"
-                    )
+                    self.env["ir.sequence"].next_by_code(sequence_code)
                     or _("Nuevo")
                 )
         return super().create(vals_list)
 
     def write(self, values):
         raise AccessError(
-            _("Los movimientos de saldo a favor no pueden modificarse.")
+            _("Los movimientos de saldos de clientes no pueden modificarse.")
         )
 
     def unlink(self):
         raise AccessError(
-            _("Los movimientos de saldo a favor no pueden eliminarse.")
+            _("Los movimientos de saldos de clientes no pueden eliminarse.")
         )
 
 
@@ -213,6 +247,21 @@ class ResPartner(models.Model):
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
+    alsa_discount_contact_balance = fields.Monetary(
+        string="Descuento del contacto",
+        compute="_compute_alsa_credit_balances",
+        currency_field="alsa_credit_currency_id",
+    )
+    alsa_discount_company_balance = fields.Monetary(
+        string="Descuento de la empresa",
+        compute="_compute_alsa_credit_balances",
+        currency_field="alsa_credit_currency_id",
+    )
+    alsa_discount_total_available = fields.Monetary(
+        string="Saldo de descuento disponible",
+        compute="_compute_alsa_credit_balances",
+        currency_field="alsa_credit_currency_id",
+    )
 
     @api.depends_context("company")
     def _compute_alsa_credit_balances(self):
@@ -227,29 +276,44 @@ class ResPartner(models.Model):
         )
         totals = {}
         for movement in movements:
-            totals[movement.partner_id.id] = (
-                totals.get(movement.partner_id.id, 0.0) + movement.amount
+            total_key = (movement.partner_id.id, movement.balance_kind)
+            totals[total_key] = (
+                totals.get(total_key, 0.0) + movement.amount
             )
 
         for partner in self:
-            exact_balance = totals.get(partner.id, 0.0)
             commercial_partner = partner.commercial_partner_id
-            if partner.parent_id:
-                contact_balance = exact_balance
-                company_balance = totals.get(commercial_partner.id, 0.0)
-            elif partner.is_company:
-                contact_balance = 0.0
-                company_balance = exact_balance
-            else:
-                contact_balance = exact_balance
-                company_balance = 0.0
+            balance_values = {}
+            for balance_kind in ("credit", "discount"):
+                exact_balance = totals.get((partner.id, balance_kind), 0.0)
+                if partner.parent_id:
+                    contact_balance = exact_balance
+                    company_balance = totals.get(
+                        (commercial_partner.id, balance_kind), 0.0
+                    )
+                elif partner.is_company:
+                    contact_balance = 0.0
+                    company_balance = exact_balance
+                else:
+                    contact_balance = exact_balance
+                    company_balance = 0.0
+                balance_values[balance_kind] = (
+                    contact_balance,
+                    company_balance,
+                    contact_balance + company_balance,
+                )
 
             partner.alsa_credit_currency_id = company.currency_id
-            partner.alsa_credit_contact_balance = contact_balance
-            partner.alsa_credit_company_balance = company_balance
-            partner.alsa_credit_total_available = (
-                contact_balance + company_balance
-            )
+            (
+                partner.alsa_credit_contact_balance,
+                partner.alsa_credit_company_balance,
+                partner.alsa_credit_total_available,
+            ) = balance_values["credit"]
+            (
+                partner.alsa_discount_contact_balance,
+                partner.alsa_discount_company_balance,
+                partner.alsa_discount_total_available,
+            ) = balance_values["discount"]
 
     def _alsa_credit_movement_partner_ids(self):
         self.ensure_one()
@@ -258,36 +322,54 @@ class ResPartner(models.Model):
             partners |= self.commercial_partner_id
         return partners.ids
 
-    def action_view_alsa_credit_movements(self):
+    def _alsa_action_view_balance_movements(self, balance_kind):
         self.ensure_one()
         company = self.env.company
+        balance_label = (
+            _("saldo a favor")
+            if balance_kind == "credit"
+            else _("saldo de descuento")
+        )
         return {
             "type": "ir.actions.act_window",
-            "name": _("Movimientos de saldo a favor"),
+            "name": _("Movimientos de %(kind)s", kind=balance_label),
             "res_model": "alsa.customer.credit.movement",
             "view_mode": "list,form",
             "domain": [
                 ("partner_id", "in", self._alsa_credit_movement_partner_ids()),
                 ("company_id", "=", company.id),
+                ("balance_kind", "=", balance_kind),
             ],
             "context": {"create": False, "delete": False},
         }
 
-    def _alsa_action_adjust_credit(self, target_partner):
+    def action_view_alsa_credit_movements(self):
+        return self._alsa_action_view_balance_movements("credit")
+
+    def action_view_alsa_discount_movements(self):
+        return self._alsa_action_view_balance_movements("discount")
+
+    def _alsa_action_adjust_credit(self, target_partner, balance_kind):
         self.ensure_one()
         if not self.env.user.has_group(
             "alsa_customer_credit.group_alsa_customer_credit_manager"
         ):
-            raise AccessError(_("No tiene permiso para modificar saldos a favor."))
+            raise AccessError(_("No tiene permiso para modificar saldos de clientes."))
+        balance_label = (
+            _("saldo a favor")
+            if balance_kind == "credit"
+            else _("saldo de descuento")
+        )
         return {
             "type": "ir.actions.act_window",
-            "name": _("Ajustar saldo a favor"),
+            "name": _("Ajustar %(kind)s", kind=balance_label),
             "res_model": "alsa.customer.credit.adjust.wizard",
             "view_mode": "form",
             "target": "new",
             "context": {
                 "default_target_partner_id": target_partner.id,
                 "default_company_id": self.env.company.id,
+                "default_balance_kind": balance_kind,
             },
         }
 
@@ -295,14 +377,27 @@ class ResPartner(models.Model):
         self.ensure_one()
         if self.is_company:
             raise UserError(_("Las empresas no tienen un saldo de contacto."))
-        return self._alsa_action_adjust_credit(self)
+        return self._alsa_action_adjust_credit(self, "credit")
 
     def action_adjust_alsa_company_credit(self):
         self.ensure_one()
         target_partner = self.commercial_partner_id
         if not target_partner.is_company:
             raise UserError(_("Este contacto no pertenece a una empresa."))
-        return self._alsa_action_adjust_credit(target_partner)
+        return self._alsa_action_adjust_credit(target_partner, "credit")
+
+    def action_adjust_alsa_contact_discount(self):
+        self.ensure_one()
+        if self.is_company:
+            raise UserError(_("Las empresas no tienen un saldo de contacto."))
+        return self._alsa_action_adjust_credit(self, "discount")
+
+    def action_adjust_alsa_company_discount(self):
+        self.ensure_one()
+        target_partner = self.commercial_partner_id
+        if not target_partner.is_company:
+            raise UserError(_("Este contacto no pertenece a una empresa."))
+        return self._alsa_action_adjust_credit(target_partner, "discount")
 
 
 class SaleOrder(models.Model):
@@ -327,6 +422,11 @@ class SaleOrder(models.Model):
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
+    alsa_discount_total_available = fields.Monetary(
+        string="Saldo de descuento disponible",
+        compute="_compute_alsa_credit_balances",
+        currency_field="alsa_credit_currency_id",
+    )
 
     @api.depends("partner_id", "company_id")
     def _compute_alsa_credit_balances(self):
@@ -343,6 +443,9 @@ class SaleOrder(models.Model):
             order.alsa_credit_total_available = (
                 partner.alsa_credit_total_available if partner else 0.0
             )
+            order.alsa_discount_total_available = (
+                partner.alsa_discount_total_available if partner else 0.0
+            )
 
     def action_view_alsa_credit_movements(self):
         self.ensure_one()
@@ -352,6 +455,15 @@ class SaleOrder(models.Model):
         return self.partner_id.with_company(
             company
         ).action_view_alsa_credit_movements()
+
+    def action_view_alsa_discount_movements(self):
+        self.ensure_one()
+        if not self.partner_id:
+            raise UserError(_("Seleccione primero un cliente."))
+        company = self.company_id or self.env.company
+        return self.partner_id.with_company(
+            company
+        ).action_view_alsa_discount_movements()
 
 
 class HelpdeskTicket(models.Model):
@@ -376,6 +488,11 @@ class HelpdeskTicket(models.Model):
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
+    alsa_discount_total_available = fields.Monetary(
+        string="Saldo de descuento disponible",
+        compute="_compute_alsa_credit_balances",
+        currency_field="alsa_credit_currency_id",
+    )
 
     @api.depends("partner_id", "company_id")
     def _compute_alsa_credit_balances(self):
@@ -392,6 +509,9 @@ class HelpdeskTicket(models.Model):
             ticket.alsa_credit_total_available = (
                 partner.alsa_credit_total_available if partner else 0.0
             )
+            ticket.alsa_discount_total_available = (
+                partner.alsa_discount_total_available if partner else 0.0
+            )
 
     def action_view_alsa_credit_movements(self):
         self.ensure_one()
@@ -401,3 +521,12 @@ class HelpdeskTicket(models.Model):
         return self.partner_id.with_company(
             company
         ).action_view_alsa_credit_movements()
+
+    def action_view_alsa_discount_movements(self):
+        self.ensure_one()
+        if not self.partner_id:
+            raise UserError(_("Seleccione primero un cliente."))
+        company = self.company_id or self.env.company
+        return self.partner_id.with_company(
+            company
+        ).action_view_alsa_discount_movements()

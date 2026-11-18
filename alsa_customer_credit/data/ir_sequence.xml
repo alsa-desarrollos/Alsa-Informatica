@@ -7,4 +7,11 @@
         <field name="padding">5</field>
         <field name="company_id" eval="False"/>
     </record>
+    <record id="seq_alsa_customer_discount_movement" model="ir.sequence">
+        <field name="name">Movimiento de saldo de descuento</field>
+        <field name="code">alsa.customer.discount.movement</field>
+        <field name="prefix">SDD/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
 </odoo>

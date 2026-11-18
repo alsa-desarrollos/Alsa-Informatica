@@ -1,13 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_alsa_customer_credit_movement_search" model="ir.ui.view">
+        <field name="name">alsa.customer.credit.movement.search</field>
+        <field name="model">alsa.customer.credit.movement</field>
+        <field name="arch" type="xml">
+            <search string="Buscar movimientos">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="reference"/>
+                <field name="reason"/>
+                <filter name="filter_credit" string="Saldo a favor" domain="[('balance_kind', '=', 'credit')]"/>
+                <filter name="filter_discount" string="Saldo de descuento" domain="[('balance_kind', '=', 'discount')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_balance_kind" string="Clase de saldo" context="{'group_by': 'balance_kind'}"/>
+                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_company" string="Compañía" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                    <filter name="group_month" string="Mes" context="{'group_by': 'movement_datetime:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="view_alsa_customer_credit_movement_list" model="ir.ui.view">
         <field name="name">alsa.customer.credit.movement.list</field>
         <field name="model">alsa.customer.credit.movement</field>
         <field name="arch" type="xml">
-            <list string="Movimientos de saldo a favor" create="0" edit="0" delete="0">
+            <list string="Movimientos de saldos de clientes" create="0" edit="0" delete="0">
                 <field name="movement_datetime"/>
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="balance_kind" widget="badge"
+                       decoration-success="balance_kind == 'credit'"
+                       decoration-info="balance_kind == 'discount'"/>
                 <field name="movement_type" widget="badge"
                        decoration-success="movement_type == 'increase'"
                        decoration-warning="movement_type == 'decrease'"/>
@@ -27,7 +51,7 @@
         <field name="name">alsa.customer.credit.movement.form</field>
         <field name="model">alsa.customer.credit.movement</field>
         <field name="arch" type="xml">
-            <form string="Movimiento de saldo a favor" create="0" edit="0" delete="0">
+            <form string="Movimiento de saldo de cliente" create="0" edit="0" delete="0">
                 <sheet>
                     <div class="oe_title">
                         <label for="name"/>
@@ -36,6 +60,7 @@
                     <group>
                         <group>
                             <field name="partner_id"/>
+                            <field name="balance_kind" widget="badge"/>
                             <field name="movement_datetime"/>
                             <field name="movement_type" widget="badge"/>
                             <field name="user_id"/>
@@ -58,11 +83,68 @@
     </record>
 
     <record id="action_alsa_customer_credit_movements" model="ir.actions.act_window">
-        <field name="name">Movimientos de saldo a favor</field>
+        <field name="name">Movimientos</field>
         <field name="res_model">alsa.customer.credit.movement</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_alsa_customer_credit_movement_search"/>
         <field name="context">{'create': False, 'delete': False}</field>
     </record>
+
+    <record id="view_alsa_customer_balances_list" model="ir.ui.view">
+        <field name="name">res.partner.alsa.customer.balances.list</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list string="Saldos de clientes" create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="parent_id" string="Empresa" optional="show"/>
+                <field name="email" optional="hide"/>
+                <field name="phone" optional="hide"/>
+                <field name="alsa_credit_total_available"
+                       string="Saldo a favor"
+                       decoration-success="alsa_credit_total_available &gt; 0"/>
+                <field name="alsa_discount_total_available"
+                       string="Saldo de descuento"
+                       decoration-info="alsa_discount_total_available &gt; 0"/>
+                <field name="alsa_credit_currency_id" column_invisible="True"/>
+                <button name="action_view_alsa_credit_movements"
+                        type="object"
+                        string="A favor"
+                        icon="fa-money"/>
+                <button name="action_view_alsa_discount_movements"
+                        type="object"
+                        string="Descuento"
+                        icon="fa-tag"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_alsa_customer_balances" model="ir.actions.act_window">
+        <field name="name">Saldos de clientes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_alsa_customer_balances_list"/>
+        <field name="domain">[('active', '=', True)]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <menuitem id="menu_alsa_customer_credit_root"
+              name="Saldos de clientes"
+              action="action_alsa_customer_balances"
+              sequence="45"
+              groups="base.group_user"
+              web_icon="alsa_customer_credit,static/description/icon.svg"/>
+    <menuitem id="menu_alsa_customer_balances"
+              name="Clientes y saldos"
+              parent="menu_alsa_customer_credit_root"
+              action="action_alsa_customer_balances"
+              sequence="10"
+              groups="base.group_user"/>
+    <menuitem id="menu_alsa_customer_credit_movements"
+              name="Movimientos"
+              parent="menu_alsa_customer_credit_root"
+              action="action_alsa_customer_credit_movements"
+              sequence="20"
+              groups="base.group_user"/>
 
     <record id="view_partner_form_alsa_customer_credit" model="ir.ui.view">
         <field name="name">res.partner.form.alsa.customer.credit</field>
@@ -83,17 +165,36 @@
                         <span class="o_stat_text">Saldo a favor</span>
                     </div>
                 </button>
+                <button name="action_view_alsa_discount_movements"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-tag">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="alsa_discount_total_available"
+                                   widget="monetary"
+                                   options="{'currency_field': 'alsa_credit_currency_id'}"/>
+                        </span>
+                        <span class="o_stat_text">Saldo de descuento</span>
+                    </div>
+                </button>
                 <field name="alsa_credit_currency_id" invisible="1"/>
             </xpath>
             <xpath expr="//form/sheet/notebook" position="before">
-                <group string="Saldo a favor">
-                    <group>
-                        <field name="alsa_credit_company_balance" readonly="1"/>
-                        <field name="alsa_credit_contact_balance" readonly="1"/>
+                <div class="alert alert-info" role="alert">
+                    <strong>Saldo a favor:</strong> dinero o anticipo que pertenece al cliente.
+                    <br/>
+                    <strong>Saldo de descuento:</strong> beneficio comercial no reembolsable.
+                </div>
+                <group string="Saldos del cliente">
+                    <group string="Saldo a favor">
+                        <field name="alsa_credit_company_balance"
+                               readonly="1"
+                               invisible="not is_company and not parent_id"/>
+                        <field name="alsa_credit_contact_balance"
+                               readonly="1"
+                               invisible="is_company"/>
                         <field name="alsa_credit_total_available" readonly="1"/>
-                        <field name="alsa_credit_currency_id" invisible="1"/>
-                    </group>
-                    <group>
                         <button name="action_adjust_alsa_company_credit"
                                 type="object"
                                 string="Ajustar saldo de la empresa"
@@ -110,10 +211,39 @@
                                 invisible="is_company"/>
                         <button name="action_view_alsa_credit_movements"
                                 type="object"
-                                string="Ver movimientos"
+                                string="Ver movimientos a favor"
                                 class="btn-link"
                                 icon="fa-list"/>
                     </group>
+                    <group string="Saldo de descuento">
+                        <field name="alsa_discount_company_balance"
+                               readonly="1"
+                               invisible="not is_company and not parent_id"/>
+                        <field name="alsa_discount_contact_balance"
+                               readonly="1"
+                               invisible="is_company"/>
+                        <field name="alsa_discount_total_available" readonly="1"/>
+                        <button name="action_adjust_alsa_company_discount"
+                                type="object"
+                                string="Ajustar descuento de la empresa"
+                                class="btn-primary"
+                                icon="fa-building"
+                                groups="alsa_customer_credit.group_alsa_customer_credit_manager"
+                                invisible="not is_company and not parent_id"/>
+                        <button name="action_adjust_alsa_contact_discount"
+                                type="object"
+                                string="Ajustar descuento del contacto"
+                                class="btn-secondary"
+                                icon="fa-user"
+                                groups="alsa_customer_credit.group_alsa_customer_credit_manager"
+                                invisible="is_company"/>
+                        <button name="action_view_alsa_discount_movements"
+                                type="object"
+                                string="Ver movimientos de descuento"
+                                class="btn-link"
+                                icon="fa-list"/>
+                    </group>
+                    <field name="alsa_credit_currency_id" invisible="1"/>
                 </group>
             </xpath>
         </field>
@@ -124,26 +254,36 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//form/sheet//field[@name='partner_id'][1]" position="after">
-                <field name="alsa_credit_company_balance"
-                       string="Saldo de la empresa"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_contact_balance"
-                       string="Saldo del contacto"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_total_available"
-                       string="Saldo a favor disponible"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_currency_id" invisible="1"/>
+            <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_alsa_credit_movements"
                         type="object"
-                        string="Ver movimientos"
-                        icon="fa-list"
-                        class="btn-link"
-                        invisible="not partner_id"/>
+                        class="oe_stat_button"
+                        icon="fa-money"
+                        invisible="not partner_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="alsa_credit_total_available"
+                                   widget="monetary"
+                                   options="{'currency_field': 'alsa_credit_currency_id'}"/>
+                        </span>
+                        <span class="o_stat_text">Saldo a favor</span>
+                    </div>
+                </button>
+                <button name="action_view_alsa_discount_movements"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-tag"
+                        invisible="not partner_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="alsa_discount_total_available"
+                                   widget="monetary"
+                                   options="{'currency_field': 'alsa_credit_currency_id'}"/>
+                        </span>
+                        <span class="o_stat_text">Saldo de descuento</span>
+                    </div>
+                </button>
+                <field name="alsa_credit_currency_id" invisible="1"/>
             </xpath>
         </field>
     </record>
@@ -153,26 +293,36 @@
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//form/sheet//field[@name='partner_id'][1]" position="after">
-                <field name="alsa_credit_company_balance"
-                       string="Saldo de la empresa"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_contact_balance"
-                       string="Saldo del contacto"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_total_available"
-                       string="Saldo a favor disponible"
-                       readonly="1"
-                       invisible="not partner_id"/>
-                <field name="alsa_credit_currency_id" invisible="1"/>
+            <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_alsa_credit_movements"
                         type="object"
-                        string="Ver movimientos"
-                        icon="fa-list"
-                        class="btn-link"
-                        invisible="not partner_id"/>
+                        class="oe_stat_button"
+                        icon="fa-money"
+                        invisible="not partner_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="alsa_credit_total_available"
+                                   widget="monetary"
+                                   options="{'currency_field': 'alsa_credit_currency_id'}"/>
+                        </span>
+                        <span class="o_stat_text">Saldo a favor</span>
+                    </div>
+                </button>
+                <button name="action_view_alsa_discount_movements"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-tag"
+                        invisible="not partner_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="alsa_discount_total_available"
+                                   widget="monetary"
+                                   options="{'currency_field': 'alsa_credit_currency_id'}"/>
+                        </span>
+                        <span class="o_stat_text">Saldo de descuento</span>
+                    </div>
+                </button>
+                <field name="alsa_credit_currency_id" invisible="1"/>
             </xpath>
         </field>
     </record>

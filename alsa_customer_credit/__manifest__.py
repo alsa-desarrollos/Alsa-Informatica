@@ -1,8 +1,8 @@
 {
-    "name": "ALSA - Saldos a favor",
-    "version": "19.0.1.0.0",
+    "name": "ALSA - Saldos de clientes",
+    "version": "19.0.1.1.0",
     "category": "Sales/Sales",
-    "summary": "Control manual y auditable de saldos a favor de clientes",
+    "summary": "Control auditable de saldos a favor y saldos de descuento",
     "author": "Alsa Informática",
     "website": "https://alsainformatica.com.mx",
     "license": "LGPL-3",
@@ -14,6 +14,7 @@
         "views/customer_credit_views.xml",
         "wizard/customer_credit_adjust_views.xml",
     ],
+    "images": ["static/description/icon.svg"],
     "installable": True,
-    "application": False,
+    "application": True,
 }
