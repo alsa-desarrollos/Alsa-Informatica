@@ -55,7 +55,7 @@ class AlsaCustomerCreditMovement(models.Model):
     balance_kind = fields.Selection(
         selection=[
             ("credit", "Saldo a favor"),
-            ("discount", "Saldo de descuento"),
+            ("discount", "Saldo pendiente"),
         ],
         string="Clase de saldo",
         required=True,
@@ -63,7 +63,7 @@ class AlsaCustomerCreditMovement(models.Model):
         index=True,
         help=(
             "El saldo a favor representa dinero o anticipos del cliente. "
-            "El saldo de descuento representa un beneficio comercial no reembolsable."
+            "El saldo pendiente representa un importe por cobrar o regularizar."
         ),
     )
     movement_type = fields.Selection(
@@ -175,7 +175,7 @@ class AlsaCustomerCreditMovement(models.Model):
         balance_label = (
             _("Saldo a favor")
             if balance_kind == "credit"
-            else _("Saldo de descuento")
+            else _("Saldo pendiente")
         )
         partner.message_post(
             body=_(
@@ -275,7 +275,7 @@ class AlsaCustomerCreditMovement(models.Model):
                         kind=(
                             _("Saldo a favor")
                             if balance_kind == "credit"
-                            else _("Saldo de descuento")
+                            else _("Saldo pendiente")
                         ),
                         amount=amount,
                         balance=balance_after,
@@ -342,17 +342,17 @@ class ResPartner(models.Model):
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_contact_balance = fields.Monetary(
-        string="Descuento del contacto",
+        string="Saldo pendiente del contacto",
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_company_balance = fields.Monetary(
-        string="Descuento de la empresa",
+        string="Saldo pendiente de la empresa",
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_total_available = fields.Monetary(
-        string="Saldo de descuento disponible",
+        string="Saldo pendiente",
         compute="_compute_alsa_credit_balances",
         inverse="_inverse_alsa_discount_total_available",
         currency_field="alsa_credit_currency_id",
@@ -473,7 +473,7 @@ class ResPartner(models.Model):
         balance_label = (
             _("saldo a favor")
             if balance_kind == "credit"
-            else _("saldo de descuento")
+            else _("saldo pendiente")
         )
         return {
             "type": "ir.actions.act_window",
@@ -503,7 +503,7 @@ class ResPartner(models.Model):
         balance_label = (
             _("saldo a favor")
             if balance_kind == "credit"
-            else _("saldo de descuento")
+            else _("saldo pendiente")
         )
         return {
             "type": "ir.actions.act_window",
@@ -568,7 +568,7 @@ class SaleOrder(models.Model):
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_total_available = fields.Monetary(
-        string="Saldo de descuento disponible",
+        string="Saldo pendiente",
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )
@@ -634,7 +634,7 @@ class HelpdeskTicket(models.Model):
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_total_available = fields.Monetary(
-        string="Saldo de descuento disponible",
+        string="Saldo pendiente",
         compute="_compute_alsa_credit_balances",
         currency_field="alsa_credit_currency_id",
     )

@@ -1,8 +1,8 @@
 {
     "name": "ALSA - Saldos de clientes",
-    "version": "19.0.1.2.2",
+    "version": "19.0.1.3.0",
     "category": "Sales/Sales",
-    "summary": "Control auditable de saldos a favor y saldos de descuento",
+    "summary": "Control auditable de saldos a favor y saldos pendientes",
     "author": "Alsa Informática",
     "website": "https://alsainformatica.com.mx",
     "license": "LGPL-3",

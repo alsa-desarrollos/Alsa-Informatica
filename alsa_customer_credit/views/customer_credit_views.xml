@@ -10,7 +10,7 @@
                 <field name="reference"/>
                 <field name="reason"/>
                 <filter name="filter_credit" string="Saldo a favor" domain="[('balance_kind', '=', 'credit')]"/>
-                <filter name="filter_discount" string="Saldo de descuento" domain="[('balance_kind', '=', 'discount')]"/>
+                <filter name="filter_discount" string="Saldo pendiente" domain="[('balance_kind', '=', 'discount')]"/>
                 <separator/>
                 <filter name="group_balance_kind" string="Clase de saldo" context="{'group_by': 'balance_kind'}"/>
                 <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
@@ -102,7 +102,7 @@
                        string="Saldo a favor"
                        decoration-success="alsa_credit_total_available &gt; 0"/>
                 <field name="alsa_discount_total_available"
-                       string="Saldo de descuento"
+                       string="Saldo pendiente"
                        decoration-info="alsa_discount_total_available &gt; 0"/>
                 <field name="alsa_credit_currency_id" column_invisible="True"/>
                 <button name="action_view_alsa_credit_movements"
@@ -111,8 +111,8 @@
                         icon="fa-money"/>
                 <button name="action_view_alsa_discount_movements"
                         type="object"
-                        string="Descuento"
-                        icon="fa-tag"/>
+                        string="Pendiente"
+                        icon="fa-clock-o"/>
             </list>
         </field>
     </record>
@@ -167,14 +167,14 @@
                 <button name="action_view_alsa_discount_movements"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-tag">
+                        icon="fa-clock-o">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_value">
                             <field name="alsa_discount_total_available"
                                    widget="monetary"
                                    options="{'currency_field': 'alsa_credit_currency_id'}"/>
                         </span>
-                        <span class="o_stat_text">Saldo de descuento</span>
+                        <span class="o_stat_text">Saldo pendiente</span>
                     </div>
                 </button>
                 <field name="alsa_credit_currency_id" invisible="1"/>
@@ -267,7 +267,7 @@
                 <button name="action_view_alsa_discount_movements"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-tag"
+                        icon="fa-clock-o"
                         invisible="not partner_id">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_value">
@@ -275,7 +275,7 @@
                                    widget="monetary"
                                    options="{'currency_field': 'alsa_credit_currency_id'}"/>
                         </span>
-                        <span class="o_stat_text">Saldo de descuento</span>
+                        <span class="o_stat_text">Saldo pendiente</span>
                     </div>
                 </button>
                 <field name="alsa_credit_currency_id" invisible="1"/>
@@ -306,7 +306,7 @@
                 <button name="action_view_alsa_discount_movements"
                         type="object"
                         class="oe_stat_button"
-                        icon="fa-tag"
+                        icon="fa-clock-o"
                         invisible="not partner_id">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_value">
@@ -314,7 +314,7 @@
                                    widget="monetary"
                                    options="{'currency_field': 'alsa_credit_currency_id'}"/>
                         </span>
-                        <span class="o_stat_text">Saldo de descuento</span>
+                        <span class="o_stat_text">Saldo pendiente</span>
                     </div>
                 </button>
                 <field name="alsa_credit_currency_id" invisible="1"/>

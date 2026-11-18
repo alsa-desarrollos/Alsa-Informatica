@@ -2,7 +2,7 @@
 <odoo>
     <record id="module_category_alsa_customer_credit" model="ir.module.category">
         <field name="name">Saldos de clientes</field>
-        <field name="description">Permisos para consultar y ajustar saldos a favor y de descuento.</field>
+        <field name="description">Permisos para consultar y ajustar saldos a favor y saldos pendientes.</field>
         <field name="sequence">36</field>
     </record>
 
@@ -18,7 +18,7 @@
         <field name="privilege_id" ref="privilege_alsa_customer_credit"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="user_ids" eval="[(4, ref('base.user_admin'))]"/>
-        <field name="comment">Los usuarios de este grupo pueden ajustar saldos a favor y saldos de descuento. Todos los usuarios internos pueden consultarlos.</field>
+        <field name="comment">Los usuarios de este grupo pueden ajustar saldos a favor y saldos pendientes. Todos los usuarios internos pueden consultarlos.</field>
     </record>
 
     <record id="rule_alsa_customer_credit_movement_company" model="ir.rule">

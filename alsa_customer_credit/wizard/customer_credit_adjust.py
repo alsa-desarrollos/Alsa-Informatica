@@ -27,7 +27,7 @@ class AlsaCustomerCreditAdjustWizard(models.TransientModel):
     balance_kind = fields.Selection(
         selection=[
             ("credit", "Saldo a favor"),
-            ("discount", "Saldo de descuento"),
+            ("discount", "Saldo pendiente"),
         ],
         string="Clase de saldo",
         required=True,
@@ -106,7 +106,7 @@ class AlsaCustomerCreditAdjustWizard(models.TransientModel):
                     kind=(
                         _("saldo a favor")
                         if movement.balance_kind == "credit"
-                        else _("saldo de descuento")
+                        else _("saldo pendiente")
                     ),
                     partner=movement.partner_id.display_name,
                     balance=movement.balance_after,
