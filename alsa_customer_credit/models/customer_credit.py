@@ -193,12 +193,7 @@ class AlsaCustomerCreditMovement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         internal_create = self.env.context.get("alsa_credit_internal_create")
-        manual_create = self.env.context.get("alsa_credit_manual_create")
-        if not internal_create and not manual_create:
-            raise AccessError(
-                _("Los movimientos solo pueden generarse desde la pestaña Saldos.")
-            )
-        if manual_create:
+        if not internal_create:
             if not self.env.user.has_group(
                 "alsa_customer_credit.group_alsa_customer_credit_manager"
             ):
