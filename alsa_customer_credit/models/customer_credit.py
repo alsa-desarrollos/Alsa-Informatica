@@ -9,7 +9,7 @@ class AlsaCustomerCreditMovement(models.Model):
     _rec_name = "name"
 
     name = fields.Char(
-        string="Movimiento",
+        string="Folio",
         required=True,
         copy=False,
         readonly=True,
@@ -77,7 +77,7 @@ class AlsaCustomerCreditMovement(models.Model):
         readonly=True,
     )
     amount = fields.Monetary(
-        string="Movimiento",
+        string="Importe del movimiento",
         required=True,
         readonly=True,
         currency_field="currency_id",
