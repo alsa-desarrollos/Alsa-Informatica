@@ -11,12 +11,11 @@
                 <field name="reason"/>
                 <filter name="filter_credit" string="Saldo a favor" domain="[('balance_kind', '=', 'credit')]"/>
                 <filter name="filter_discount" string="Saldo de descuento" domain="[('balance_kind', '=', 'discount')]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter name="group_balance_kind" string="Clase de saldo" context="{'group_by': 'balance_kind'}"/>
-                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
-                    <filter name="group_company" string="Compañía" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
-                    <filter name="group_month" string="Mes" context="{'group_by': 'movement_datetime:month'}"/>
-                </group>
+                <separator/>
+                <filter name="group_balance_kind" string="Clase de saldo" context="{'group_by': 'balance_kind'}"/>
+                <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                <filter name="group_company" string="Compañía" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                <filter name="group_month" string="Mes" context="{'group_by': 'movement_datetime:month'}"/>
             </search>
         </field>
     </record>
