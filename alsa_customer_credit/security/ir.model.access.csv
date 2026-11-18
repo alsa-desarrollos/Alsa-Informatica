@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_alsa_customer_credit_movement_user,alsa.customer.credit.movement user,model_alsa_customer_credit_movement,base.group_user,1,0,0,0
+access_alsa_customer_credit_movement_manager,alsa.customer.credit.movement manager,model_alsa_customer_credit_movement,alsa_customer_credit.group_alsa_customer_credit_manager,1,0,1,0
+access_alsa_customer_credit_adjust_wizard,alsa.customer.credit.adjust.wizard,model_alsa_customer_credit_adjust_wizard,alsa_customer_credit.group_alsa_customer_credit_manager,1,1,1,1

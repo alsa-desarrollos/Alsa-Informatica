@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_alsa_customer_credit_movement" model="ir.sequence">
+        <field name="name">Movimiento de saldo a favor</field>
+        <field name="code">alsa.customer.credit.movement</field>
+        <field name="prefix">SAF/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_alsa_customer_credit_adjust_wizard_form" model="ir.ui.view">
+        <field name="name">alsa.customer.credit.adjust.wizard.form</field>
+        <field name="model">alsa.customer.credit.adjust.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Ajustar saldo a favor">
+                <div class="alert alert-info" role="alert">
+                    Indique el nuevo saldo total. Odoo registrará automáticamente la diferencia y conservará el historial del ajuste.
+                </div>
+                <group>
+                    <field name="target_partner_id"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="current_balance"/>
+                    <field name="new_balance"/>
+                    <field name="reference" placeholder="Folio, recibo o referencia externa"/>
+                    <field name="reason" placeholder="Explique el motivo del ajuste"/>
+                </group>
+                <footer>
+                    <button name="action_apply"
+                            string="Aplicar ajuste"
+                            type="object"
+                            class="oe_highlight"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
