@@ -1,6 +1,6 @@
 {
     "name": "ALSA - Saldos de clientes",
-    "version": "19.0.1.2.0",
+    "version": "19.0.1.2.1",
     "category": "Sales/Sales",
     "summary": "Control auditable de saldos a favor y saldos de descuento",
     "author": "Alsa Informática",

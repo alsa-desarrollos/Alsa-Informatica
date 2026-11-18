@@ -343,6 +343,7 @@ class ResPartner(models.Model):
     alsa_credit_total_available = fields.Monetary(
         string="Saldo a favor disponible",
         compute="_compute_alsa_credit_balances",
+        inverse="_inverse_alsa_credit_total_available",
         currency_field="alsa_credit_currency_id",
     )
     alsa_discount_contact_balance = fields.Monetary(
@@ -358,8 +359,59 @@ class ResPartner(models.Model):
     alsa_discount_total_available = fields.Monetary(
         string="Saldo de descuento disponible",
         compute="_compute_alsa_credit_balances",
+        inverse="_inverse_alsa_discount_total_available",
         currency_field="alsa_credit_currency_id",
     )
+
+    def _inverse_alsa_balance_total(self, balance_kind):
+        Movement = self.env["alsa.customer.credit.movement"]
+        company = self.env.company
+        for partner in self:
+            desired_total = (
+                partner.alsa_credit_total_available
+                if balance_kind == "credit"
+                else partner.alsa_discount_total_available
+            )
+            target_partner = partner
+            target_balance = desired_total
+            if partner.parent_id:
+                company_balance = Movement._get_partner_balance(
+                    partner.commercial_partner_id,
+                    company,
+                    balance_kind,
+                )
+                target_balance -= company_balance
+
+            currency = company.currency_id
+            target_balance = currency.round(target_balance)
+            if currency.compare_amounts(target_balance, 0.0) < 0:
+                raise ValidationError(
+                    _(
+                        "El total indicado es menor que el saldo disponible de la "
+                        "empresa. Registre el movimiento desde la empresa."
+                    )
+                )
+            current_balance = Movement._get_partner_balance(
+                target_partner,
+                company,
+                balance_kind,
+            )
+            if currency.is_zero(target_balance - current_balance):
+                continue
+            Movement._create_balance_adjustment(
+                partner=target_partner,
+                company=company,
+                balance_kind=balance_kind,
+                new_balance=target_balance,
+                reason=_("Ajuste directo desde la pestaña Saldos"),
+                reference=_("Formulario del contacto"),
+            )
+
+    def _inverse_alsa_credit_total_available(self):
+        self._inverse_alsa_balance_total("credit")
+
+    def _inverse_alsa_discount_total_available(self):
+        self._inverse_alsa_balance_total("discount")
 
     @api.depends_context("company")
     def _compute_alsa_credit_balances(self):
