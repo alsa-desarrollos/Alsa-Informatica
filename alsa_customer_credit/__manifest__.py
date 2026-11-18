@@ -1,12 +1,12 @@
 {
     "name": "ALSA - Saldos de clientes",
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.2.0",
     "category": "Sales/Sales",
     "summary": "Control auditable de saldos a favor y saldos de descuento",
     "author": "Alsa Informática",
     "website": "https://alsainformatica.com.mx",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "contacts", "sale", "helpdesk"],
+    "depends": ["base", "mail", "contacts", "sale", "helpdesk", "alsa_licensing"],
     "data": [
         "security/customer_credit_security.xml",
         "security/ir.model.access.csv",

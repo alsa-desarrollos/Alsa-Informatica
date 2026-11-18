@@ -59,7 +59,6 @@ class AlsaCustomerCreditMovement(models.Model):
         ],
         string="Clase de saldo",
         required=True,
-        readonly=True,
         default="credit",
         index=True,
         help=(
@@ -79,7 +78,6 @@ class AlsaCustomerCreditMovement(models.Model):
     amount = fields.Monetary(
         string="Importe del movimiento",
         required=True,
-        readonly=True,
         currency_field="currency_id",
         help="Un importe positivo aumenta el saldo y uno negativo lo disminuye.",
     )
@@ -95,8 +93,8 @@ class AlsaCustomerCreditMovement(models.Model):
         readonly=True,
         currency_field="currency_id",
     )
-    reference = fields.Char(string="Referencia", readonly=True)
-    reason = fields.Text(string="Motivo", required=True, readonly=True)
+    reference = fields.Char(string="Referencia")
+    reason = fields.Text(string="Motivo", required=True)
     user_id = fields.Many2one(
         comodel_name="res.users",
         string="Registrado por",
@@ -194,10 +192,104 @@ class AlsaCustomerCreditMovement(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        if not self.env.context.get("alsa_credit_internal_create"):
+        internal_create = self.env.context.get("alsa_credit_internal_create")
+        manual_create = self.env.context.get("alsa_credit_manual_create")
+        if not internal_create and not manual_create:
             raise AccessError(
-                _("Los movimientos solo pueden generarse mediante Ajustar saldo.")
+                _("Los movimientos solo pueden generarse desde la pestaña Saldos.")
             )
+        if manual_create:
+            if not self.env.user.has_group(
+                "alsa_customer_credit.group_alsa_customer_credit_manager"
+            ):
+                raise AccessError(
+                    _("No tiene permiso para registrar movimientos de saldo.")
+                )
+            movements = self.browse()
+            for values in vals_list:
+                partner = self.env["res.partner"].browse(
+                    values.get("partner_id")
+                ).exists()
+                company = self.env["res.company"].browse(
+                    values.get("company_id") or self.env.company.id
+                ).exists()
+                balance_kind = values.get("balance_kind") or "credit"
+                reason = (values.get("reason") or "").strip()
+                if not partner or not company:
+                    raise ValidationError(
+                        _("El cliente y la compañía son obligatorios.")
+                    )
+                if company not in self.env.companies:
+                    raise AccessError(
+                        _("No tiene acceso a la compañía seleccionada.")
+                    )
+                if balance_kind not in {"credit", "discount"}:
+                    raise ValidationError(_("La clase de saldo no es válida."))
+                if not reason:
+                    raise ValidationError(_("Debe indicar el motivo del movimiento."))
+
+                currency = company.currency_id
+                amount = currency.round(values.get("amount") or 0.0)
+                if currency.is_zero(amount):
+                    raise ValidationError(
+                        _("El importe del movimiento no puede ser cero.")
+                    )
+
+                self.env.cr.execute(
+                    "SELECT id FROM res_partner WHERE id = %s FOR UPDATE",
+                    [partner.id],
+                )
+                balance_before = currency.round(
+                    self._get_partner_balance(partner, company, balance_kind)
+                )
+                balance_after = currency.round(balance_before + amount)
+                if currency.compare_amounts(balance_after, 0.0) < 0:
+                    raise ValidationError(
+                        _("El movimiento no puede dejar el saldo por debajo de cero.")
+                    )
+
+                values.update(
+                    {
+                        "partner_id": partner.id,
+                        "company_id": company.id,
+                        "balance_kind": balance_kind,
+                        "movement_type": "increase" if amount > 0 else "decrease",
+                        "amount": amount,
+                        "balance_before": balance_before,
+                        "balance_after": balance_after,
+                        "reason": reason,
+                        "user_id": self.env.user.id,
+                    }
+                )
+                if values.get("name", _("Nuevo")) == _("Nuevo"):
+                    sequence_code = (
+                        "alsa.customer.discount.movement"
+                        if balance_kind == "discount"
+                        else "alsa.customer.credit.movement"
+                    )
+                    values["name"] = (
+                        self.env["ir.sequence"].next_by_code(sequence_code)
+                        or _("Nuevo")
+                    )
+                movement = super().create([values])
+                movements |= movement
+                movement.partner_id.message_post(
+                    body=_(
+                        "%(kind)s: movimiento de %(amount).2f %(currency)s. "
+                        "Saldo resultante: %(balance).2f %(currency)s. Motivo: %(reason)s",
+                        kind=(
+                            _("Saldo a favor")
+                            if balance_kind == "credit"
+                            else _("Saldo de descuento")
+                        ),
+                        amount=amount,
+                        balance=balance_after,
+                        currency=currency.name,
+                        reason=reason,
+                    )
+                )
+            return movements
+
         for values in vals_list:
             if not values.get("reason", "").strip():
                 raise ValidationError(_("Debe indicar el motivo del ajuste."))
@@ -226,6 +318,12 @@ class AlsaCustomerCreditMovement(models.Model):
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
+
+    alsa_balance_movement_ids = fields.One2many(
+        comodel_name="alsa.customer.credit.movement",
+        inverse_name="partner_id",
+        string="Movimientos de saldo",
+    )
 
     alsa_credit_currency_id = fields.Many2one(
         comodel_name="res.currency",
