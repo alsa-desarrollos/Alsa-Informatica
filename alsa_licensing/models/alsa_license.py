@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, ValidationError
+from odoo.tools import sql
 
 
 class AlsaLicense(models.Model):
@@ -269,6 +270,7 @@ class AlsaLicenseLine(models.Model):
         readonly=True,
     )
     quantity = fields.Float(string="Cantidad", required=True, default=1.0)
+    serial_number = fields.Char(string="Número de serie", copy=False)
     allowed_access_count = fields.Integer(
         string="Accesos / Usuarios",
         required=True,
@@ -292,8 +294,21 @@ class AlsaLicenseLine(models.Model):
                     "Los accesos o usuarios de la línea deben ser mayores que cero."
                 )
 
+    def action_open_details(self):
+        self.ensure_one()
+        form_view = self.env.ref("alsa_licensing.view_alsa_license_line_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Producto / Servicio de la licencia",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "views": [(form_view.id, "form")],
+            "target": "new",
+        }
+
     def init(self):
-        """Create a product line for licenses created before multi-product support."""
+        """Migrate legacy product lines and Studio serial numbers."""
         self.env.cr.execute(
             """
             INSERT INTO alsa_license_line
@@ -310,3 +325,14 @@ class AlsaLicenseLine(models.Model):
                )
             """
         )
+        if sql.column_exists(
+            self.env.cr, self._table, "x_studio_numero_de_serie"
+        ):
+            self.env.cr.execute(
+                """
+                UPDATE alsa_license_line
+                   SET serial_number = x_studio_numero_de_serie
+                 WHERE COALESCE(serial_number, '') = ''
+                   AND COALESCE(x_studio_numero_de_serie, '') != ''
+                """
+            )

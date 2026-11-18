@@ -106,8 +106,6 @@ class HelpdeskTicket(models.Model):
 
     def _alsa_sync_selected_equipment(self):
         for ticket in self:
-            if not ticket.alsa_equipment_selection_line_ids:
-                continue
             equipment_ids = ticket.alsa_equipment_selection_line_ids.filtered(
                 "selected"
             ).equipment_id.ids
